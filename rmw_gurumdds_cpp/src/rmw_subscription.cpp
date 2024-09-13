@@ -135,6 +135,8 @@ __rmw_create_subscription(
       RMW_SET_ERROR_MSG("failed to finalize topic qos");
       return nullptr;
     }
+
+    GurumddsTopicEventListener::associate_listener(topic);
   } else {
     dds_Duration_t timeout;
     timeout.sec = 0;
@@ -213,6 +215,7 @@ __rmw_create_subscription(
   subscriber_info->rosidl_message_typesupport = type_support;
   subscriber_info->implementation_identifier = RMW_GURUMDDS_ID;
   subscriber_info->ctx = ctx;
+  GurumddsTopicEventListener::add_event(topic, subscriber_info);
 
   entity_get_gid(
     reinterpret_cast<dds_Entity *>(subscriber_info->topic_reader),
@@ -297,14 +300,17 @@ __rmw_destroy_subscription(
       RMW_SET_ERROR_MSG("failed to delete datareader");
       return RMW_RET_ERROR;
     }
-    subscriber_info->topic_reader = nullptr;
 
+    GurumddsTopicEventListener::remove_event(topic, subscriber_info);
+    subscriber_info->topic_reader = nullptr;
     ret = dds_DomainParticipant_delete_topic(ctx->participant, topic);
     if (ret == dds_RETCODE_PRECONDITION_NOT_MET) {
       RCUTILS_LOG_DEBUG_NAMED(RMW_GURUMDDS_ID, "The entity using the topic still exists.");
     } else if (ret != dds_RETCODE_OK) {
       RMW_SET_ERROR_MSG("failed to delete topic");
       return RMW_RET_ERROR;
+    } else {
+      GurumddsTopicEventListener::disassociate_Listener(topic);
     }
   }
 

@@ -26,6 +26,179 @@
 
 #define ENTITYID_PARTICIPANT 0x000001C1
 
+void GurumddsPublisherInfo::update_inconsistent_topic(int32_t total_count, int32_t total_count_change)
+{
+  std::lock_guard guard_callback{mutex_cb};
+  inconsistent_topic_status.total_count_change += total_count_change;
+  inconsistent_topic_status.total_count = total_count;
+  inconsistent_topic_changed = true;
+
+  auto callback = on_new_event_cb[RMW_EVENT_SUBSCRIPTION_INCOMPATIBLE_TYPE];
+  auto user_data = user_data_cb[RMW_EVENT_SUBSCRIPTION_INCOMPATIBLE_TYPE];
+  if(nullptr == callback) {
+    callback(user_data, total_count_change);
+  }
+}
+
+rmw_ret_t GurumddsPublisherInfo::set_on_new_event_callback(
+  rmw_event_type_t event_type,
+  const void * user_data,
+  rmw_event_callback_t callback) {
+  // mask는 RMW 측에서 보관하게 만든다.
+  std::lock_guard guard{mutex_cb};
+  if(callback != nullptr) {
+    int32_t changes;
+    switch(event_type) {
+      case RMW_EVENT_LIVELINESS_LOST:
+      {
+        dds_LivelinessLostStatus status{};
+        dds_DataWriter_get_liveliness_lost_status(topic_writer, &status);
+        changes = status.total_count_change;
+      }
+        break;
+      case RMW_EVENT_OFFERED_DEADLINE_MISSED:
+      {
+        dds_OfferedDeadlineMissedStatus status{};
+        dds_DataWriter_get_offered_deadline_missed_status(topic_writer, &status);
+        changes = status.total_count_change;
+      }
+        break;
+      case RMW_EVENT_OFFERED_QOS_INCOMPATIBLE:
+      {
+        dds_OfferedIncompatibleQosStatus status{};
+        dds_DataWriter_get_offered_incompatible_qos_status(topic_writer, &status);
+        changes = status.total_count_change;
+      }
+        break;
+      case RMW_EVENT_PUBLISHER_INCOMPATIBLE_TYPE:
+      {
+        dds_Topic* topic = dds_DataWriter_get_topic(topic_writer);
+        if(inconsistent_topic_changed) {
+          inconsistent_topic_changed = false;
+        } else {
+          dds_Topic_get_inconsistent_topic_status(topic, &inconsistent_topic_status);
+        }
+
+        changes = inconsistent_topic_status.total_count_change;
+        inconsistent_topic_status.total_count_change = 0;
+      }
+        break;
+      case RMW_EVENT_PUBLICATION_MATCHED:
+      {
+        dds_PublicationMatchedStatus status{};
+        dds_DataWriter_get_publication_matched_status(topic_writer, &status);
+        changes = status.total_count_change;
+      }
+
+        break;
+      default:
+          return RMW_RET_UNSUPPORTED;
+    }
+
+    if(changes > 0) {
+      callback(user_data, event_type);
+    }
+
+    on_new_event_cb[event_type] = callback;
+    user_data_cb[event_type] = user_data;
+
+  } else {
+    on_new_event_cb[event_type] = nullptr;
+    user_data_cb[event_type] = nullptr;
+  }
+
+  return RMW_RET_OK;
+}
+
+void GurumddsSubscriberInfo::update_inconsistent_topic(int32_t total_count, int32_t total_count_change) {
+  inconsistent_topic_status.total_count_change += total_count_change;
+  inconsistent_topic_status.total_count = total_count;
+  inconsistent_topic_changed = true;
+
+  auto callback = on_new_event_cb[RMW_EVENT_SUBSCRIPTION_INCOMPATIBLE_TYPE];
+  auto ctx = user_data_cb[RMW_EVENT_SUBSCRIPTION_INCOMPATIBLE_TYPE];
+  if(nullptr == callback) {
+    callback(ctx, total_count_change);
+  }
+}
+
+rmw_ret_t GurumddsSubscriberInfo::set_on_new_event_callback(
+  rmw_event_type_t event_type,
+  const void * user_data,
+  rmw_event_callback_t callback)
+{
+  // mask는 RMW 측에서 보관하게 만든다.
+  std::lock_guard guard{mutex_cb};
+  if(callback != nullptr) {
+    int32_t changes;
+    switch(event_type) {
+      case RMW_EVENT_LIVELINESS_CHANGED:
+      {
+        dds_LivelinessChangedStatus status{};
+        dds_DataReader_get_liveliness_changed_status(topic_reader, &status);
+        changes = status.alive_count_change;
+      }
+        break;
+      case RMW_EVENT_REQUESTED_DEADLINE_MISSED:
+      {
+        dds_RequestedDeadlineMissedStatus status{};
+        dds_DataReader_get_requested_deadline_missed_status(topic_reader, &status);
+        changes = status.total_count_change;
+      }
+        break;
+      case RMW_EVENT_REQUESTED_QOS_INCOMPATIBLE:
+      {
+        dds_RequestedDeadlineMissedStatus status{};
+        dds_DataReader_get_requested_deadline_missed_status(topic_reader, &status);
+        changes = status.total_count_change;
+      }
+        break;
+      case RMW_EVENT_MESSAGE_LOST:
+      {
+        dds_SampleLostStatus status{};
+        dds_DataReader_get_sample_lost_status(topic_reader, &status);
+        changes = status.total_count_change;
+      }
+        break;
+      case RMW_EVENT_SUBSCRIPTION_INCOMPATIBLE_TYPE:
+      {
+        dds_Topic* topic = reinterpret_cast<dds_Topic*>(dds_DataReader_get_topicdescription(topic_reader));
+        if(inconsistent_topic_changed) {
+          inconsistent_topic_changed = false;
+        } else {
+          dds_Topic_get_inconsistent_topic_status(topic, &inconsistent_topic_status);
+        }
+
+        changes = inconsistent_topic_status.total_count_change;
+        inconsistent_topic_status.total_count_change = 0;
+      }
+        break;
+      case RMW_EVENT_SUBSCRIPTION_MATCHED:
+      {
+        dds_SubscriptionMatchedStatus status{};
+        dds_DataReader_get_subscription_matched_status(topic_reader, &status);
+        changes = status.total_count_change;
+      }
+
+        break;
+      default:
+        return RMW_RET_UNSUPPORTED;
+    }
+
+    if(changes > 0) {
+      callback(user_data, event_type);
+    }
+
+    on_new_event_cb[event_type] = callback;
+    user_data_cb[event_type] = user_data;
+  } else {
+    on_new_event_cb[event_type] = nullptr;
+    user_data_cb[event_type] = nullptr;
+  }
+
+  return RMW_RET_OK;
+}
+
 static std::map<std::string, std::vector<uint8_t>>
 __parse_map(uint8_t * const data, const uint32_t data_len)
 {
@@ -274,23 +447,22 @@ rmw_ret_t GurumddsPublisherInfo::get_status(
     rmw_status->total_count = status.total_count;
     rmw_status->total_count_change = status.total_count_change;
     rmw_status->last_policy_kind = convert_qos_policy(status.last_policy_id);
-  } else if (mask == dds_INCONSISTENT_TOPIC_STATUS) {
+  } else if(mask == dds_INCONSISTENT_TOPIC_STATUS) {
     dds_Topic* const topic = dds_DataWriter_get_topic(this->topic_writer);
-
-    if(topic == nullptr) {
-      return RMW_RET_ERROR;
-    }
-
-    dds_InconsistentTopicStatus status{};
-    auto dds_ret = dds_Topic_get_inconsistent_topic_status(topic, &status);
-
-    if(dds_ret != dds_RETCODE_OK) {
-      return check_dds_ret_code(dds_ret);
+    std::lock_guard guard{mutex_cb};
+    if(inconsistent_topic_changed) {
+      inconsistent_topic_changed = false;
+    } else {
+      auto dds_ret = dds_Topic_get_inconsistent_topic_status(topic, &inconsistent_topic_status);
+      if (dds_ret != dds_RETCODE_OK) {
+        return check_dds_ret_code(dds_ret);
+      }
     }
 
     auto const rmw_status = static_cast<rmw_incompatible_type_status_t *>(event);
-    rmw_status->total_count = status.total_count;
-    rmw_status->total_count_change = status.total_count_change;
+    rmw_status->total_count = inconsistent_topic_status.total_count;
+    rmw_status->total_count_change = inconsistent_topic_status.total_count_change;
+    inconsistent_topic_status.total_count_change = 0;
   } else if (mask == dds_PUBLICATION_MATCHED_STATUS) {
     dds_PublicationMatchedStatus status{};
     dds_ReturnCode_t dds_ret =
@@ -379,23 +551,18 @@ rmw_ret_t GurumddsSubscriberInfo::get_status(
     rmw_status->total_count = status.total_count;
     rmw_status->total_count_change = status.total_count_change;
   } else if (mask == dds_INCONSISTENT_TOPIC_STATUS) {
-  dds_Topic* const topic = reinterpret_cast<dds_Topic*>(dds_DataReader_get_topicdescription(this->topic_reader));
+    dds_Topic* const topic = reinterpret_cast<dds_Topic*>(dds_DataReader_get_topicdescription(this->topic_reader));
+    dds_InconsistentTopicStatus status{};
+    auto dds_ret = dds_Topic_get_inconsistent_topic_status(topic, &status);
 
-  if(topic == nullptr) {
-    return RMW_RET_ERROR;
-  }
+    if(dds_ret != dds_RETCODE_OK) {
+      return check_dds_ret_code(dds_ret);
+    }
 
-  dds_InconsistentTopicStatus status{};
-  auto dds_ret = dds_Topic_get_inconsistent_topic_status(topic, &status);
-
-  if(dds_ret != dds_RETCODE_OK) {
-    return check_dds_ret_code(dds_ret);
-  }
-
-  auto const rmw_status = static_cast<rmw_incompatible_type_status_t *>(event);
-  rmw_status->total_count = status.total_count;
-  rmw_status->total_count_change = status.total_count_change;
-} else if (mask == dds_SUBSCRIPTION_MATCHED_STATUS) {
+    auto const rmw_status = static_cast<rmw_incompatible_type_status_t *>(event);
+    rmw_status->total_count = status.total_count;
+    rmw_status->total_count_change = status.total_count_change;
+  } else if (mask == dds_SUBSCRIPTION_MATCHED_STATUS) {
     dds_SubscriptionMatchedStatus status{};
     dds_ReturnCode_t dds_ret =
       dds_DataReader_get_subscription_matched_status(this->topic_reader, &status);
@@ -474,4 +641,93 @@ size_t GurumddsClientInfo::count_unread()
 size_t GurumddsServiceInfo::count_unread()
 {
   return count_unread_(request_reader, data_seq, info_seq, raw_data_sizes);
+}
+
+std::mutex GurumddsTopicEventListener::mutex_table_;
+std::map<dds_Topic*, GurumddsTopicEventListener*> GurumddsTopicEventListener::table_;
+
+rmw_ret_t GurumddsTopicEventListener::associate_listener(dds_Topic * topic) {
+  auto event_listener = new(std::nothrow) GurumddsTopicEventListener{};
+  if(nullptr == event_listener) {
+    return RMW_RET_ERROR;
+  }
+
+  std::lock_guard guard{mutex_table_};
+  if(!table_.emplace(topic, event_listener).second) {
+    return RMW_RET_ERROR;
+  }
+
+  dds_TopicListener listener{};
+  listener.on_inconsistent_topic = &GurumddsTopicEventListener::on_inconsistent_topic;
+  dds_Topic_set_listener_context(topic, event_listener);
+  dds_Topic_set_listener(topic, &listener, dds_INCONSISTENT_TOPIC_STATUS);
+  return RMW_RET_OK;
+}
+
+rmw_ret_t GurumddsTopicEventListener::disassociate_Listener(dds_Topic * topic) {
+  std::lock_guard guard{mutex_table_};
+  auto it = table_.find(topic);
+  if(table_.end() == it) {
+    return RMW_RET_ERROR;
+  }
+
+  auto listener = it->second;
+  std::unique_lock listener_guard{listener->mutex_};
+  dds_Topic_set_listener_context(topic, nullptr);
+  listener_guard.unlock();
+  table_.erase(it);
+  delete listener;
+  return RMW_RET_OK;
+}
+
+void GurumddsTopicEventListener::on_inconsistent_topic(const dds_Topic* the_topic, const dds_InconsistentTopicStatus* status) {
+  auto topic = const_cast<dds_Topic*>(the_topic);
+  auto listener = static_cast<GurumddsTopicEventListener*>(dds_Topic_get_listener_context(topic));
+  if(nullptr == listener) {
+    return;
+  }
+
+  listener->on_inconsistent_topic(*status);
+}
+
+void GurumddsTopicEventListener::on_inconsistent_topic(const dds_InconsistentTopicStatus& status) {
+  std::lock_guard guard{mutex_};
+  for(auto it: event_list_) {
+    it->update_inconsistent_topic(status.total_count, status.total_count_change);
+  }
+
+}
+
+void GurumddsTopicEventListener::add_event(dds_Topic * topic, GurumddsEventInfo * event_info) {
+  std::lock_guard guard{mutex_table_};
+  auto it = table_.find(topic);
+  if(table_.end() == it) {
+    return;
+  }
+
+  auto listener = it->second;
+  std::unique_lock listener_guard{listener->mutex_};
+  auto list_it = std::find(listener->event_list_.begin(), listener->event_list_.end(), event_info);
+  if(listener->event_list_.end() == list_it) {
+    return;
+  }
+
+  listener->event_list_.emplace_back(event_info);
+}
+
+void GurumddsTopicEventListener::remove_event(dds_Topic * topic, GurumddsEventInfo * event_info) {
+  std::lock_guard guard{mutex_table_};
+  auto it = table_.find(topic);
+  if(table_.end() == it) {
+    return;
+  }
+
+    auto listener = it->second;
+    std::unique_lock listener_guard{listener->mutex_};
+    auto list_it = std::find(listener->event_list_.begin(), listener->event_list_.end(), event_info);
+    if(listener->event_list_.end() == list_it) {
+      return;
+    }
+
+    listener->event_list_.erase(list_it);
 }

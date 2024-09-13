@@ -115,8 +115,7 @@ rmw_event_set_callback(
   RCUTILS_UNUSED(rmw_event);
   RCUTILS_UNUSED(callback);
   RCUTILS_UNUSED(user_data);
-
-  RMW_SET_ERROR_MSG("rmw_event_set_callback not implemented");
-  return RMW_RET_UNSUPPORTED;
+  auto event_info = static_cast<GurumddsEventInfo*>(rmw_event->data);
+  return event_info->set_on_new_event_callback(rmw_event->event_type, user_data, callback);
 }
 }  // extern "C"

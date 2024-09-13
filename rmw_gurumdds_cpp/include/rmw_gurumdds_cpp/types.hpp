@@ -28,6 +28,7 @@
 #include <stdexcept>
 #include <string>
 #include <utility>
+#include <vector>
 
 #include "rmw/ret_types.h"
 
@@ -73,6 +74,16 @@ typedef struct _GurumddsEventInfo
   virtual rmw_ret_t get_status(const dds_StatusMask mask, void * event) = 0;
   virtual dds_StatusCondition * get_statuscondition() = 0;
   virtual dds_StatusMask get_status_changes() = 0;
+  virtual rmw_ret_t set_on_new_event_callback(
+    rmw_event_type_t event_type,
+    const void * user_data,
+    rmw_event_callback_t callback) = 0;
+
+  virtual void update_inconsistent_topic(
+    int32_t total_count,
+    int32_t total_count_change
+    ) = 0;
+
 } GurumddsEventInfo;
 
 typedef struct _GurumddsPublisherInfo : GurumddsEventInfo
@@ -84,10 +95,25 @@ typedef struct _GurumddsPublisherInfo : GurumddsEventInfo
 
   rmw_gid_t publisher_gid;
   dds_DataWriter * topic_writer;
+  std::mutex mutex_cb;
+  rmw_event_callback_t on_new_event_cb[RMW_EVENT_INVALID] = { };
+  const void * user_data_cb[RMW_EVENT_INVALID] = { };
+  dds_InconsistentTopicStatus inconsistent_topic_status = { };
+  bool inconsistent_topic_changed = false;
 
   rmw_ret_t get_status(dds_StatusMask mask, void * event) override;
   dds_StatusCondition * get_statuscondition() override;
   dds_StatusMask get_status_changes() override;
+  rmw_ret_t set_on_new_event_callback(
+    rmw_event_type_t event_type,
+    const void * user_data,
+    rmw_event_callback_t callback) override;
+
+
+  void update_inconsistent_topic(
+    int32_t total_count,
+    int32_t total_count_change) override;
+
 } GurumddsPublisherInfo;
 
 typedef struct _GurumddsPublisherGID
@@ -100,6 +126,11 @@ typedef struct _GurumddsSubscriberInfo : GurumddsEventInfo
   const rosidl_message_type_support_t * rosidl_message_typesupport;
   const char * implementation_identifier;
   rmw_context_impl_t * ctx;
+  std::mutex mutex_cb;
+  rmw_event_callback_t on_new_event_cb[RMW_EVENT_INVALID] = { };
+  const void * user_data_cb[RMW_EVENT_INVALID] = { };
+  dds_InconsistentTopicStatus inconsistent_topic_status = { };
+  bool inconsistent_topic_changed = false;
 
   rmw_gid_t subscriber_gid;
   dds_DataReader * topic_reader;
@@ -114,6 +145,15 @@ typedef struct _GurumddsSubscriberInfo : GurumddsEventInfo
   rmw_ret_t get_status(dds_StatusMask mask, void * event) override;
   dds_StatusCondition * get_statuscondition() override;
   dds_StatusMask get_status_changes() override;
+  rmw_ret_t set_on_new_event_callback(
+    rmw_event_type_t event_type,
+    const void * user_data,
+    rmw_event_callback_t callback) override;
+
+  void update_inconsistent_topic(
+    int32_t total_count,
+    int32_t total_count_change) override;
+
   size_t count_unread();
 } GurumddsSubscriberInfo;
 
@@ -160,5 +200,28 @@ typedef struct _GurumddsServiceInfo
 
   size_t count_unread();
 } GurumddsServiceInfo;
+
+class GurumddsTopicEventListener {
+public:
+  static rmw_ret_t associate_listener(dds_Topic* topic);
+
+  static rmw_ret_t disassociate_Listener(dds_Topic* topic);
+
+  static void add_event(dds_Topic* topic, GurumddsEventInfo* event_info);
+
+  static void remove_event(dds_Topic* topic, GurumddsEventInfo* event_info);
+
+  void on_inconsistent_topic(const dds_InconsistentTopicStatus& status);
+
+private:
+  static void on_inconsistent_topic(const dds_Topic* the_topic, const dds_InconsistentTopicStatus* status);
+
+private:
+  static std::map<dds_Topic*, GurumddsTopicEventListener*> table_;
+  static std::mutex mutex_table_;
+
+  std::recursive_mutex mutex_;
+  std::vector<GurumddsEventInfo*> event_list_;
+};
 
 #endif  // RMW_GURUMDDS_CPP__TYPES_HPP_

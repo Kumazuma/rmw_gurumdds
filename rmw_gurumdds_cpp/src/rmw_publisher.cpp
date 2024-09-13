@@ -129,6 +129,8 @@ __rmw_create_publisher(
       RMW_SET_ERROR_MSG("failed to finalize topic qos");
       return nullptr;
     }
+
+    GurumddsTopicEventListener::associate_listener(topic);
   } else {
     dds_Duration_t timeout;
     timeout.sec = 0;
@@ -170,6 +172,7 @@ __rmw_create_publisher(
   publisher_info->implementation_identifier = RMW_GURUMDDS_ID;
   publisher_info->sequence_number = 0;
   publisher_info->ctx = ctx;
+  GurumddsTopicEventListener::add_event(topic, publisher_info);
 
   entity_get_gid(
     reinterpret_cast<dds_Entity *>(publisher_info->topic_writer),
@@ -241,6 +244,7 @@ __rmw_destroy_publisher(
       return RMW_RET_ERROR;
     }
     publisher_info->topic_writer = nullptr;
+    GurumddsTopicEventListener::remove_event(topic, publisher_info);
 
     ret = dds_DomainParticipant_delete_topic(ctx->participant, topic);
     if (ret == dds_RETCODE_PRECONDITION_NOT_MET) {
@@ -248,6 +252,8 @@ __rmw_destroy_publisher(
     } else if (ret != dds_RETCODE_OK) {
       RMW_SET_ERROR_MSG("failed to delete topic");
       return RMW_RET_ERROR;
+    } else {
+      GurumddsTopicEventListener::disassociate_Listener(topic);
     }
   }
 
