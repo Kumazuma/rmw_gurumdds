@@ -46,6 +46,7 @@ rmw_ret_t GurumddsPublisherInfo::set_on_new_event_callback(
   rmw_event_callback_t callback) {
   // mask는 RMW 측에서 보관하게 만든다.
   std::lock_guard guard{mutex_cb};
+  dds_StatusMask event_status_type = get_status_kind_from_rmw(event_type);
   if(callback != nullptr) {
     int32_t changes;
     switch(event_type) {
@@ -99,13 +100,16 @@ rmw_ret_t GurumddsPublisherInfo::set_on_new_event_callback(
       callback(user_data, event_type);
     }
 
+    mask |= event_status_type;
     on_new_event_cb[event_type] = callback;
     user_data_cb[event_type] = user_data;
-
   } else {
+    mask &= ~event_status_type;
     on_new_event_cb[event_type] = nullptr;
     user_data_cb[event_type] = nullptr;
   }
+
+  dds_DataWriter_set_listener(topic_writer, &topic_listener, mask);
 
   return RMW_RET_OK;
 }
@@ -129,6 +133,7 @@ rmw_ret_t GurumddsSubscriberInfo::set_on_new_event_callback(
 {
   // mask는 RMW 측에서 보관하게 만든다.
   std::lock_guard guard{mutex_cb};
+  dds_StatusMask event_status_type = get_status_kind_from_rmw(event_type);
   if(callback != nullptr) {
     int32_t changes;
     switch(event_type) {
@@ -189,12 +194,16 @@ rmw_ret_t GurumddsSubscriberInfo::set_on_new_event_callback(
       callback(user_data, event_type);
     }
 
+    mask |= event_status_type;
     on_new_event_cb[event_type] = callback;
     user_data_cb[event_type] = user_data;
   } else {
+    mask &= ~event_status_type;
     on_new_event_cb[event_type] = nullptr;
     user_data_cb[event_type] = nullptr;
   }
+
+  dds_DataReader_set_listener(topic_reader, &topic_listener, mask);
 
   return RMW_RET_OK;
 }
@@ -631,6 +640,34 @@ inline size_t count_unread_(
 size_t GurumddsSubscriberInfo::count_unread()
 {
   return count_unread_(topic_reader, data_seq, info_seq, raw_data_sizes);
+}
+
+void _GurumddsSubscriberInfo::on_requested_deadline_missed(const dds_RequestedDeadlineMissedStatus & status)
+{
+  std::lock_guard<std::mutex> guard(mutex_cb);
+  requested_deadline_missed_changed = true;
+  requested_deadline_missed_status.total_count_change += status.total_count_change;
+  requested_deadline_missed_status.total_count = status.total_count;
+  auto callback = on_new_event_cb[RMW_EVENT_LIVELINESS_CHANGED];
+  auto user_data = user_data_cb[RMW_EVENT_LIVELINESS_CHANGED];
+  if(nullptr == callback) {
+    callback(user_data, liveliness_changed_status.alive_count_change);
+  }
+}
+
+void GurumddsSubscriberInfo::on_liveliness_changed(const dds_LivelinessChangedStatus & status)
+{
+  std::lock_guard<std::mutex> guard(mutex_cb);
+  liveliness_changed = true;
+  liveliness_changed_status.alive_count = status.alive_count;
+  liveliness_changed_status.not_alive_count = status.not_alive_count;
+  liveliness_changed_status.alive_count_change += status.alive_count_change;
+  liveliness_changed_status.not_alive_count_change += status.not_alive_count_change;
+  auto callback = on_new_event_cb[RMW_EVENT_LIVELINESS_CHANGED];
+  auto user_data = user_data_cb[RMW_EVENT_LIVELINESS_CHANGED];
+  if(nullptr == callback) {
+    callback(user_data, liveliness_changed_status.alive_count_change);
+  }
 }
 
 size_t GurumddsClientInfo::count_unread()

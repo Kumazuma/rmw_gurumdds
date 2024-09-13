@@ -100,6 +100,9 @@ typedef struct _GurumddsPublisherInfo : GurumddsEventInfo
   const void * user_data_cb[RMW_EVENT_INVALID] = { };
   dds_InconsistentTopicStatus inconsistent_topic_status = { };
   bool inconsistent_topic_changed = false;
+  dds_StatusMask mask = 0;
+  dds_DataWriterListener topic_listener = {};
+
 
   rmw_ret_t get_status(dds_StatusMask mask, void * event) override;
   dds_StatusCondition * get_statuscondition() override;
@@ -131,6 +134,11 @@ typedef struct _GurumddsSubscriberInfo : GurumddsEventInfo
   const void * user_data_cb[RMW_EVENT_INVALID] = { };
   dds_InconsistentTopicStatus inconsistent_topic_status = { };
   bool inconsistent_topic_changed = false;
+  dds_RequestedDeadlineMissedStatus requested_deadline_missed_status = {};
+  bool requested_deadline_missed_changed = false;
+  dds_LivelinessChangedStatus liveliness_changed_status = { };
+  bool liveliness_changed = false;
+  dds_StatusMask mask = 0;
 
   rmw_gid_t subscriber_gid;
   dds_DataReader * topic_reader;
@@ -153,6 +161,10 @@ typedef struct _GurumddsSubscriberInfo : GurumddsEventInfo
   void update_inconsistent_topic(
     int32_t total_count,
     int32_t total_count_change) override;
+
+  void on_requested_deadline_missed(const dds_RequestedDeadlineMissedStatus& status);
+
+  void on_liveliness_changed(const dds_LivelinessChangedStatus& status);
 
   size_t count_unread();
 } GurumddsSubscriberInfo;

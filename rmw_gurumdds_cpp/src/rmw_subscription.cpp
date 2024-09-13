@@ -197,6 +197,13 @@ __rmw_create_subscription(
   }
 
   dds_DataReader_set_listener_context(topic_reader, subscriber_info);
+  topic_listener.on_requested_deadline_missed = [](const dds_DataReader* topic_reader,
+                                                   const dds_RequestedDeadlineMissedStatus* status) {
+    dds_DataReader* reader = const_cast<dds_DataReader*>(topic_reader);
+    GurumddsSubscriberInfo* info = static_cast<GurumddsSubscriberInfo*>(dds_DataReader_get_listener_context(reader));
+
+  };
+
   topic_listener.on_data_available = [](const dds_DataReader * topic_reader){
     dds_DataReader* reader = const_cast<dds_DataReader*>(topic_reader);
     GurumddsSubscriberInfo* info = static_cast<GurumddsSubscriberInfo*>(dds_DataReader_get_listener_context(reader));
@@ -204,6 +211,12 @@ __rmw_create_subscription(
     if(info->event_callback_data.callback) {
       info->event_callback_data.callback(info->event_callback_data.user_data, info->count_unread());
     }
+  };
+
+  topic_listener.on_liveliness_changed = [](const dds_DataReader* topic_reader, const dds_LivelinessChangedStatus* status){
+    dds_DataReader* reader = const_cast<dds_DataReader*>(topic_reader);
+    GurumddsSubscriberInfo* info = static_cast<GurumddsSubscriberInfo*>(dds_DataReader_get_listener_context(reader));
+    info->on_liveliness_changed(*status);
   };
 
   subscriber_info->topic_reader = topic_reader;
@@ -1138,7 +1151,6 @@ rmw_subscription_set_on_new_message_callback(
   }
 
   std::lock_guard<std::mutex> guard(subscriber_info->event_callback_data.mutex);
-  dds_StatusMask mask = subscriber_info->get_status_changes();
   dds_ReturnCode_t dds_rc = dds_RETCODE_ERROR;
 
   if (callback) {
@@ -1147,16 +1159,16 @@ rmw_subscription_set_on_new_message_callback(
       callback(user_data, unread_count);
     }
 
+    subscriber_info->mask |= dds_DATA_AVAILABLE_STATUS;
     subscriber_info->event_callback_data.callback = callback;
     subscriber_info->event_callback_data.user_data = user_data;
-    mask |= dds_DATA_AVAILABLE_STATUS;
-    dds_rc = dds_DataReader_set_listener(subscriber_info->topic_reader, &subscriber_info->topic_listener, mask);
   } else {
     subscriber_info->event_callback_data.callback = nullptr;
     subscriber_info->event_callback_data.user_data = nullptr;
-    mask &= ~dds_DATA_AVAILABLE_STATUS;
-    dds_rc = dds_DataReader_set_listener(subscriber_info->topic_reader, &subscriber_info->topic_listener, mask);
+    subscriber_info->mask &= ~dds_DATA_AVAILABLE_STATUS;
   }
+
+  dds_rc = dds_DataReader_set_listener(subscriber_info->topic_reader, &subscriber_info->topic_listener, subscriber_info->mask);
 
   return check_dds_ret_code(dds_rc);
 }
