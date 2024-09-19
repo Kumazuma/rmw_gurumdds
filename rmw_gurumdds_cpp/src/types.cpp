@@ -131,70 +131,43 @@ rmw_ret_t GurumddsSubscriberInfo::set_on_new_event_callback(
   const void * user_data,
   rmw_event_callback_t callback)
 {
-  // mask는 RMW 측에서 보관하게 만든다.
   std::lock_guard guard{mutex_cb};
   dds_StatusMask event_status_type = get_status_kind_from_rmw(event_type);
   if(callback != nullptr) {
     int32_t changes;
     switch(event_type) {
       case RMW_EVENT_LIVELINESS_CHANGED:
-        if(liveliness_changed) {
-          liveliness_changed = false;
-        } else {
-          dds_DataReader_get_liveliness_changed_status(topic_reader, &liveliness_changed_status);
-        }
-
+        dds_DataReader_get_liveliness_changed_status(topic_reader, &liveliness_changed_status);
         changes = liveliness_changed_status.alive_count_change;
+        changes += liveliness_changed_status.not_alive_count_change;
         liveliness_changed_status.alive_count_change = 0;
+        liveliness_changed_status.not_alive_count_change = 0;
         break;
       case RMW_EVENT_REQUESTED_DEADLINE_MISSED:
-        if(requested_deadline_missed_changed) {
-          requested_deadline_missed_changed = false;
-        } else {
-          dds_DataReader_get_requested_deadline_missed_status(topic_reader, &requested_deadline_missed_status);
-        }
-
+        dds_DataReader_get_requested_deadline_missed_status(topic_reader, &requested_deadline_missed_status);
         changes = requested_deadline_missed_status.total_count_change;
         requested_deadline_missed_status.total_count_change = 0;
         break;
       case RMW_EVENT_REQUESTED_QOS_INCOMPATIBLE:
-        if(requested_incompatible_qos_changed) {
-          requested_incompatible_qos_changed = false;
-        } else {
-          dds_DataReader_get_requested_incompatible_qos_status(topic_reader, &requested_incompatible_qos_status);
-        }
-
+        dds_DataReader_get_requested_incompatible_qos_status(topic_reader, &requested_incompatible_qos_status);
         changes = requested_incompatible_qos_status.total_count_change;
         requested_incompatible_qos_status.total_count_change = 0;
         break;
       case RMW_EVENT_MESSAGE_LOST:
-        if(sample_lost_changed) {
-          sample_lost_changed = false;
-        } else {
-          dds_DataReader_get_sample_lost_status(topic_reader, &sample_lost_status);
-        }
-
+        dds_DataReader_get_sample_lost_status(topic_reader, &sample_lost_status);
         changes = sample_lost_status.total_count_change;
         sample_lost_status.total_count_change = 0;
         break;
       case RMW_EVENT_SUBSCRIPTION_INCOMPATIBLE_TYPE:
-        if(inconsistent_topic_changed) {
-          inconsistent_topic_changed = false;
-        } else {
-          dds_Topic* topic = reinterpret_cast<dds_Topic*>(dds_DataReader_get_topicdescription(topic_reader));
-          dds_Topic_get_inconsistent_topic_status(topic, &inconsistent_topic_status);
-        }
-
+      {
+        dds_Topic* topic = reinterpret_cast<dds_Topic*>(dds_DataReader_get_topicdescription(topic_reader));
+        dds_Topic_get_inconsistent_topic_status(topic, &inconsistent_topic_status);
         changes = inconsistent_topic_status.total_count_change;
         inconsistent_topic_status.total_count_change = 0;
+      }
         break;
       case RMW_EVENT_SUBSCRIPTION_MATCHED:
-        if(subscription_matched_changed) {
-          subscription_matched_changed = false;
-        } else {
-          dds_DataReader_get_subscription_matched_status(topic_reader, &subscription_matched_status);
-        }
-
+        dds_DataReader_get_subscription_matched_status(topic_reader, &subscription_matched_status);
         changes = subscription_matched_status.total_count_change;
         subscription_matched_status.total_count_change = 0;
         subscription_matched_status.current_count_change = 0;
@@ -204,7 +177,7 @@ rmw_ret_t GurumddsSubscriberInfo::set_on_new_event_callback(
     }
 
     if(changes > 0) {
-      callback(user_data, event_type);
+      callback(user_data, changes);
     }
 
     mask |= event_status_type;
@@ -519,85 +492,81 @@ rmw_ret_t GurumddsSubscriberInfo::get_status(
   dds_StatusMask mask,
   void * event)
 {
+  std::lock_guard lock_guard{mutex_cb};
   if (mask == dds_LIVELINESS_CHANGED_STATUS) {
-    dds_LivelinessChangedStatus status;
-    dds_ReturnCode_t dds_ret =
-      dds_DataReader_get_liveliness_changed_status(this->topic_reader, &status);
-    rmw_ret_t rmw_ret = check_dds_ret_code(dds_ret);
-    if (rmw_ret != RMW_RET_OK) {
-      return rmw_ret;
+    if(liveliness_changed) {
+      liveliness_changed = false;
+    } else {
+      dds_DataReader_get_liveliness_changed_status(topic_reader, &liveliness_changed_status);
     }
 
     auto rmw_status = static_cast<rmw_liveliness_changed_status_t *>(event);
-    rmw_status->alive_count = status.alive_count;
-    rmw_status->not_alive_count = status.not_alive_count;
-    rmw_status->alive_count_change = status.alive_count_change;
-    rmw_status->not_alive_count_change =
-      status.not_alive_count_change;
+    rmw_status->alive_count = liveliness_changed_status.alive_count;
+    rmw_status->not_alive_count = liveliness_changed_status.not_alive_count;
+    rmw_status->alive_count_change = liveliness_changed_status.alive_count_change;
+    rmw_status->not_alive_count_change = liveliness_changed_status.not_alive_count_change;
+    liveliness_changed_status.alive_count_change = 0;
+    liveliness_changed_status.not_alive_count_change = 0;
   } else if (mask == dds_REQUESTED_DEADLINE_MISSED_STATUS) {
-    dds_RequestedDeadlineMissedStatus status;
-    dds_ReturnCode_t dds_ret =
-      dds_DataReader_get_requested_deadline_missed_status(this->topic_reader, &status);
-    rmw_ret_t rmw_ret = check_dds_ret_code(dds_ret);
-    if (rmw_ret != RMW_RET_OK) {
-      return rmw_ret;
+    if(requested_deadline_missed_changed) {
+      requested_deadline_missed_changed = false;
+    } else {
+      dds_DataReader_get_requested_deadline_missed_status(topic_reader, &requested_deadline_missed_status);
     }
 
-    auto rmw_status =
-      static_cast<rmw_requested_deadline_missed_status_t *>(event);
-    rmw_status->total_count = status.total_count;
-    rmw_status->total_count_change = status.total_count_change;
+    auto rmw_status = static_cast<rmw_requested_deadline_missed_status_t *>(event);
+    rmw_status->total_count = requested_deadline_missed_status.total_count;
+    rmw_status->total_count_change = requested_deadline_missed_status.total_count_change;
+    requested_deadline_missed_status.total_count_change = 0;
   } else if (mask == dds_REQUESTED_INCOMPATIBLE_QOS_STATUS) {
-    dds_RequestedIncompatibleQosStatus status;
-    dds_ReturnCode_t dds_ret =
-      dds_DataReader_get_requested_incompatible_qos_status(this->topic_reader, &status);
-    rmw_ret_t rmw_ret = check_dds_ret_code(dds_ret);
-    if (rmw_ret != RMW_RET_OK) {
-      return rmw_ret;
+    if(requested_incompatible_qos_changed) {
+      requested_incompatible_qos_changed = false;
+    } else {
+      dds_DataReader_get_requested_incompatible_qos_status(topic_reader, &requested_incompatible_qos_status);
     }
 
     auto rmw_status = static_cast<rmw_requested_qos_incompatible_event_status_t *>(event);
-    rmw_status->total_count = status.total_count;
-    rmw_status->total_count_change = status.total_count_change;
-    rmw_status->last_policy_kind = convert_qos_policy(status.last_policy_id);
+    rmw_status->total_count = requested_incompatible_qos_status.total_count;
+    rmw_status->total_count_change = requested_incompatible_qos_status.total_count_change;
+    rmw_status->last_policy_kind = convert_qos_policy(requested_incompatible_qos_status.last_policy_id);
+    requested_incompatible_qos_status.total_count_change = 0;
   } else if (mask == dds_SAMPLE_LOST_STATUS) {
-    dds_SampleLostStatus status;
-    dds_ReturnCode_t dds_ret =
-      dds_DataReader_get_sample_lost_status(this->topic_reader, &status);
-    rmw_ret_t rmw_ret = check_dds_ret_code(dds_ret);
-    if (rmw_ret != RMW_RET_OK) {
-      return rmw_ret;
+    if(sample_lost_changed) {
+      sample_lost_changed = false;
+    } else {
+      dds_DataReader_get_sample_lost_status(topic_reader, &sample_lost_status);
     }
 
     auto rmw_status = static_cast<rmw_message_lost_status_t *>(event);
-    rmw_status->total_count = status.total_count;
-    rmw_status->total_count_change = status.total_count_change;
+    rmw_status->total_count = sample_lost_status.total_count;
+    rmw_status->total_count_change = sample_lost_status.total_count_change;
+    sample_lost_status.total_count_change = 0;
   } else if (mask == dds_INCONSISTENT_TOPIC_STATUS) {
-    dds_Topic* const topic = reinterpret_cast<dds_Topic*>(dds_DataReader_get_topicdescription(this->topic_reader));
-    dds_InconsistentTopicStatus status{};
-    auto dds_ret = dds_Topic_get_inconsistent_topic_status(topic, &status);
-
-    if(dds_ret != dds_RETCODE_OK) {
-      return check_dds_ret_code(dds_ret);
+    if(inconsistent_topic_changed) {
+      inconsistent_topic_changed = false;
+    } else {
+      dds_Topic* const topic = reinterpret_cast<dds_Topic*>(dds_DataReader_get_topicdescription(this->topic_reader));
+      dds_Topic_get_inconsistent_topic_status(topic, &inconsistent_topic_status);
     }
 
     auto const rmw_status = static_cast<rmw_incompatible_type_status_t *>(event);
-    rmw_status->total_count = status.total_count;
-    rmw_status->total_count_change = status.total_count_change;
+    rmw_status->total_count = inconsistent_topic_status.total_count;
+    rmw_status->total_count_change = inconsistent_topic_status.total_count_change;
+    inconsistent_topic_status.total_count_change = 0;
   } else if (mask == dds_SUBSCRIPTION_MATCHED_STATUS) {
-    dds_SubscriptionMatchedStatus status{};
-    dds_ReturnCode_t dds_ret =
-      dds_DataReader_get_subscription_matched_status(this->topic_reader, &status);
-
-    if(dds_ret != dds_RETCODE_OK) {
-      return check_dds_ret_code(dds_ret);
+    if(subscription_matched_changed) {
+      subscription_matched_changed = false;
+    } else {
+      dds_DataReader_get_subscription_matched_status(topic_reader, &subscription_matched_status);
     }
 
     auto const rmw_status = static_cast<rmw_matched_status_t *>(event);
-    rmw_status->current_count = status.current_count;
-    rmw_status->current_count_change = status.current_count_change;
-    rmw_status->total_count = status.total_count;
-    rmw_status->total_count_change = status.total_count_change;
+    rmw_status->current_count = subscription_matched_status.current_count;
+    rmw_status->current_count_change = subscription_matched_status.current_count_change;
+    rmw_status->total_count = subscription_matched_status.total_count;
+    rmw_status->total_count_change = subscription_matched_status.total_count_change;
+    subscription_matched_status.current_count_change = 0;
+    subscription_matched_status.total_count_change = 0;
   } else {
     return RMW_RET_UNSUPPORTED;
   }
@@ -674,6 +643,7 @@ void _GurumddsSubscriberInfo::on_requested_incompatible_qos(const dds_RequestedI
   requested_incompatible_qos_changed = true;
   requested_incompatible_qos_status.total_count_change += status.total_count_change;
   requested_incompatible_qos_status.total_count = status.total_count;
+  requested_incompatible_qos_status.last_policy_id = status.last_policy_id;
   auto callback = on_new_event_cb[RMW_EVENT_REQUESTED_QOS_INCOMPATIBLE];
   auto user_data = user_data_cb[RMW_EVENT_REQUESTED_QOS_INCOMPATIBLE];
   if(nullptr == callback) {

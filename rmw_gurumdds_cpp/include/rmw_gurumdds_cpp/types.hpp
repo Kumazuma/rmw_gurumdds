@@ -71,7 +71,7 @@ typedef struct
 typedef struct _GurumddsEventInfo
 {
   virtual ~_GurumddsEventInfo() = default;
-  virtual rmw_ret_t get_status(const dds_StatusMask mask, void * event) = 0;
+  virtual rmw_ret_t get_status(dds_StatusMask mask, void * event) = 0;
   virtual dds_StatusCondition * get_statuscondition() = 0;
   virtual dds_StatusMask get_status_changes() = 0;
   virtual rmw_ret_t set_on_new_event_callback(
