@@ -167,7 +167,37 @@ __rmw_create_publisher(
     return nullptr;
   }
 
+  dds_DataWriterListener listener{};
+  listener.on_offered_deadline_missed = [](const dds_DataWriter * topic_writer,
+                                           const dds_OfferedDeadlineMissedStatus * status) {
+    dds_DataWriter * writer = const_cast<dds_DataWriter *>(topic_writer);
+    GurumddsPublisherInfo * info = static_cast<GurumddsPublisherInfo*>(dds_DataWriter_get_listener_context(writer));
+    info->on_offered_deadline_missed(*status);
+  };
+
+  listener.on_offered_incompatible_qos = [](const dds_DataWriter * topic_writer,
+                                            const dds_OfferedIncompatibleQosStatus * status) {
+    dds_DataWriter * writer = const_cast<dds_DataWriter *>(topic_writer);
+    GurumddsPublisherInfo * info = static_cast<GurumddsPublisherInfo*>(dds_DataWriter_get_listener_context(writer));
+    info->on_offered_incompatible_qos(*status);
+  };
+
+  listener.on_liveliness_lost = [](const dds_DataWriter * topic_writer, const dds_LivelinessLostStatus * status) {
+    dds_DataWriter * writer = const_cast<dds_DataWriter *>(topic_writer);
+    GurumddsPublisherInfo * info = static_cast<GurumddsPublisherInfo*>(dds_DataWriter_get_listener_context(writer));
+    info->on_liveliness_lost(*status);
+  };
+
+  listener.on_publication_matched = [](const dds_DataWriter * topic_writer,
+                                       const dds_PublicationMatchedStatus * status) {
+    dds_DataWriter * writer = const_cast<dds_DataWriter *>(topic_writer);
+    GurumddsPublisherInfo * info = static_cast<GurumddsPublisherInfo*>(dds_DataWriter_get_listener_context(writer));
+    info->on_publication_matched(*status);
+  };
+
+  dds_DataWriter_set_listener_context(topic_writer, publisher_info);
   publisher_info->topic_writer = topic_writer;
+  publisher_info->topic_listener = listener;
   publisher_info->rosidl_message_typesupport = type_support;
   publisher_info->implementation_identifier = RMW_GURUMDDS_ID;
   publisher_info->sequence_number = 0;

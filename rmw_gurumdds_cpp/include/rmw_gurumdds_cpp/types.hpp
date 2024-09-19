@@ -98,10 +98,18 @@ typedef struct _GurumddsPublisherInfo : GurumddsEventInfo
   std::mutex mutex_cb;
   rmw_event_callback_t on_new_event_cb[RMW_EVENT_INVALID] = { };
   const void * user_data_cb[RMW_EVENT_INVALID] = { };
-  dds_InconsistentTopicStatus inconsistent_topic_status = { };
   bool inconsistent_topic_changed = false;
+  dds_InconsistentTopicStatus inconsistent_topic_status = { };
+  bool offered_deadline_missed_changed = false;
+  dds_OfferedDeadlineMissedStatus offered_deadline_missed_status = { };
+  bool offered_incompatible_qos_changed = false;
+  dds_OfferedIncompatibleQosStatus offered_incompatible_qos_status = { };
+  bool liveliness_lost_changed = false;
+  dds_LivelinessLostStatus liveliness_lost_status = { };
+  bool publication_matched_changed = false;
+  dds_PublicationMatchedStatus publication_matched_status = { };
   dds_StatusMask mask = 0;
-  dds_DataWriterListener topic_listener = {};
+  dds_DataWriterListener topic_listener = { };
 
 
   rmw_ret_t get_status(dds_StatusMask mask, void * event) override;
@@ -112,11 +120,17 @@ typedef struct _GurumddsPublisherInfo : GurumddsEventInfo
     const void * user_data,
     rmw_event_callback_t callback) override;
 
-
   void update_inconsistent_topic(
     int32_t total_count,
     int32_t total_count_change) override;
 
+  void on_offered_deadline_missed(const dds_OfferedDeadlineMissedStatus & status);
+
+  void on_offered_incompatible_qos(const dds_OfferedIncompatibleQosStatus & status);
+
+  void on_liveliness_lost(const dds_LivelinessLostStatus & status);
+
+  void on_publication_matched(const dds_PublicationMatchedStatus & status);
 } GurumddsPublisherInfo;
 
 typedef struct _GurumddsPublisherGID

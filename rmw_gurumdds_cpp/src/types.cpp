@@ -29,14 +29,71 @@
 void GurumddsPublisherInfo::update_inconsistent_topic(int32_t total_count, int32_t total_count_change)
 {
   std::lock_guard guard_callback{mutex_cb};
+  inconsistent_topic_changed = true;
   inconsistent_topic_status.total_count_change += total_count_change;
   inconsistent_topic_status.total_count = total_count;
-  inconsistent_topic_changed = true;
 
-  auto callback = on_new_event_cb[RMW_EVENT_SUBSCRIPTION_INCOMPATIBLE_TYPE];
-  auto user_data = user_data_cb[RMW_EVENT_SUBSCRIPTION_INCOMPATIBLE_TYPE];
+  auto callback = on_new_event_cb[RMW_EVENT_PUBLISHER_INCOMPATIBLE_TYPE];
+  auto user_data = user_data_cb[RMW_EVENT_PUBLISHER_INCOMPATIBLE_TYPE];
   if(nullptr == callback) {
     callback(user_data, total_count_change);
+  }
+}
+
+void GurumddsPublisherInfo::on_offered_deadline_missed(const dds_OfferedDeadlineMissedStatus & status)
+{
+  std::lock_guard guard_callback{mutex_cb};
+  offered_deadline_missed_changed = true;
+  liveliness_lost_status.total_count_change += status.total_count_change;
+  liveliness_lost_status.total_count = status.total_count;
+
+  auto callback = on_new_event_cb[RMW_EVENT_OFFERED_DEADLINE_MISSED];
+  auto user_data = user_data_cb[RMW_EVENT_OFFERED_DEADLINE_MISSED];
+  if(nullptr == callback) {
+    callback(user_data, liveliness_lost_status.total_count_change);
+  }
+}
+
+void GurumddsPublisherInfo::on_offered_incompatible_qos(const dds_OfferedIncompatibleQosStatus & status)
+{
+  std::lock_guard guard_callback{mutex_cb};
+  offered_incompatible_qos_changed = true;
+  offered_incompatible_qos_status.total_count_change += status.total_count_change;
+  offered_incompatible_qos_status.total_count = status.total_count;
+  offered_incompatible_qos_status.last_policy_id = status.last_policy_id;
+
+  auto callback = on_new_event_cb[RMW_EVENT_OFFERED_QOS_INCOMPATIBLE];
+  auto user_data = user_data_cb[RMW_EVENT_OFFERED_QOS_INCOMPATIBLE];
+  if(nullptr == callback) {
+    callback(user_data, offered_incompatible_qos_status.total_count_change);
+  }
+}
+
+void GurumddsPublisherInfo::on_liveliness_lost(const dds_LivelinessLostStatus & status) {
+  std::lock_guard guard_callback{mutex_cb};
+  liveliness_lost_changed = true;
+  liveliness_lost_status.total_count_change += status.total_count_change;
+  liveliness_lost_status.total_count = status.total_count;
+
+  auto callback = on_new_event_cb[RMW_EVENT_LIVELINESS_LOST];
+  auto user_data = user_data_cb[RMW_EVENT_LIVELINESS_LOST];
+  if(nullptr == callback) {
+    callback(user_data, liveliness_lost_status.total_count_change);
+  }
+}
+
+void GurumddsPublisherInfo::on_publication_matched(const dds_PublicationMatchedStatus & status) {
+  std::lock_guard guard_callback{mutex_cb};
+  publication_matched_changed = true;
+  publication_matched_status.total_count_change += status.total_count_change;
+  publication_matched_status.total_count = status.total_count;
+  publication_matched_status.current_count_change += status.current_count_change;
+  publication_matched_status.current_count = status.current_count;
+
+  auto callback = on_new_event_cb[RMW_EVENT_PUBLICATION_MATCHED];
+  auto user_data = user_data_cb[RMW_EVENT_PUBLICATION_MATCHED];
+  if(nullptr == callback) {
+    callback(user_data, publication_matched_status.total_count_change);
   }
 }
 
@@ -49,48 +106,34 @@ rmw_ret_t GurumddsPublisherInfo::set_on_new_event_callback(
   dds_StatusMask event_status_type = get_status_kind_from_rmw(event_type);
   if(callback != nullptr) {
     int32_t changes;
+    dds_Topic* topic;
     switch(event_type) {
       case RMW_EVENT_LIVELINESS_LOST:
-      {
-        dds_LivelinessLostStatus status{};
-        dds_DataWriter_get_liveliness_lost_status(topic_writer, &status);
-        changes = status.total_count_change;
-      }
+        dds_DataWriter_get_liveliness_lost_status(topic_writer, &liveliness_lost_status);
+        changes = liveliness_lost_status.total_count_change;
+        liveliness_lost_status.total_count_change = 0;
         break;
       case RMW_EVENT_OFFERED_DEADLINE_MISSED:
-      {
-        dds_OfferedDeadlineMissedStatus status{};
-        dds_DataWriter_get_offered_deadline_missed_status(topic_writer, &status);
-        changes = status.total_count_change;
-      }
+        dds_DataWriter_get_offered_deadline_missed_status(topic_writer, &offered_deadline_missed_status);
+        changes = offered_deadline_missed_status.total_count_change;
+        offered_deadline_missed_status.total_count_change = 0;
         break;
       case RMW_EVENT_OFFERED_QOS_INCOMPATIBLE:
-      {
-        dds_OfferedIncompatibleQosStatus status{};
-        dds_DataWriter_get_offered_incompatible_qos_status(topic_writer, &status);
-        changes = status.total_count_change;
-      }
+        dds_DataWriter_get_offered_incompatible_qos_status(topic_writer, &offered_incompatible_qos_status);
+        changes = offered_incompatible_qos_status.total_count_change;
+        offered_incompatible_qos_status.total_count_change = 0;
         break;
       case RMW_EVENT_PUBLISHER_INCOMPATIBLE_TYPE:
-      {
-        dds_Topic* topic = dds_DataWriter_get_topic(topic_writer);
-        if(inconsistent_topic_changed) {
-          inconsistent_topic_changed = false;
-        } else {
-          dds_Topic_get_inconsistent_topic_status(topic, &inconsistent_topic_status);
-        }
-
+        topic = dds_DataWriter_get_topic(topic_writer);
+        dds_Topic_get_inconsistent_topic_status(topic, &inconsistent_topic_status);
         changes = inconsistent_topic_status.total_count_change;
         inconsistent_topic_status.total_count_change = 0;
-      }
         break;
       case RMW_EVENT_PUBLICATION_MATCHED:
-      {
-        dds_PublicationMatchedStatus status{};
-        dds_DataWriter_get_publication_matched_status(topic_writer, &status);
-        changes = status.total_count_change;
-      }
-
+        dds_DataWriter_get_publication_matched_status(topic_writer, &publication_matched_status);
+        changes = publication_matched_status.total_count_change;
+        publication_matched_status.total_count_change = 0;
+        publication_matched_status.current_count_change = 0;
         break;
       default:
           return RMW_RET_UNSUPPORTED;
@@ -135,6 +178,7 @@ rmw_ret_t GurumddsSubscriberInfo::set_on_new_event_callback(
   dds_StatusMask event_status_type = get_status_kind_from_rmw(event_type);
   if(callback != nullptr) {
     int32_t changes;
+    dds_Topic* topic;
     switch(event_type) {
       case RMW_EVENT_LIVELINESS_CHANGED:
         dds_DataReader_get_liveliness_changed_status(topic_reader, &liveliness_changed_status);
@@ -159,12 +203,10 @@ rmw_ret_t GurumddsSubscriberInfo::set_on_new_event_callback(
         sample_lost_status.total_count_change = 0;
         break;
       case RMW_EVENT_SUBSCRIPTION_INCOMPATIBLE_TYPE:
-      {
-        dds_Topic* topic = reinterpret_cast<dds_Topic*>(dds_DataReader_get_topicdescription(topic_reader));
+        topic = reinterpret_cast<dds_Topic*>(dds_DataReader_get_topicdescription(topic_reader));
         dds_Topic_get_inconsistent_topic_status(topic, &inconsistent_topic_status);
         changes = inconsistent_topic_status.total_count_change;
         inconsistent_topic_status.total_count_change = 0;
-      }
         break;
       case RMW_EVENT_SUBSCRIPTION_MATCHED:
         dds_DataReader_get_subscription_matched_status(topic_reader, &subscription_matched_status);
@@ -405,53 +447,47 @@ rmw_ret_t GurumddsPublisherInfo::get_status(
   dds_StatusMask mask,
   void * event)
 {
+  std::lock_guard lock_mutex{mutex_cb};
   if (mask == dds_LIVELINESS_LOST_STATUS) {
-    dds_LivelinessLostStatus status;
-    dds_ReturnCode_t dds_ret =
-      dds_DataWriter_get_liveliness_lost_status(this->topic_writer, &status);
-    rmw_ret_t rmw_ret = check_dds_ret_code(dds_ret);
-    if (rmw_ret != RMW_RET_OK) {
-      return rmw_ret;
+    if(liveliness_lost_changed) {
+      liveliness_lost_changed = false;
+    } else {
+      dds_DataWriter_get_liveliness_lost_status(topic_writer, &liveliness_lost_status);
     }
 
     auto rmw_status = static_cast<rmw_liveliness_lost_status_t *>(event);
-    rmw_status->total_count = status.total_count;
-    rmw_status->total_count_change = status.total_count_change;
+    rmw_status->total_count = liveliness_lost_status.total_count;
+    rmw_status->total_count_change = liveliness_lost_status.total_count_change;
+    liveliness_lost_status.total_count_change = 0;
   } else if (mask == dds_OFFERED_DEADLINE_MISSED_STATUS) {
-    dds_OfferedDeadlineMissedStatus status;
-    dds_ReturnCode_t dds_ret =
-      dds_DataWriter_get_offered_deadline_missed_status(this->topic_writer, &status);
-    rmw_ret_t rmw_ret = check_dds_ret_code(dds_ret);
-    if (rmw_ret != RMW_RET_OK) {
-      return rmw_ret;
+    if(offered_deadline_missed_changed) {
+      offered_deadline_missed_changed = false;
+    } else {
+      dds_DataWriter_get_offered_deadline_missed_status(topic_writer, &offered_deadline_missed_status);
     }
 
     auto rmw_status = static_cast<rmw_offered_deadline_missed_status_t *>(event);
-    rmw_status->total_count = status.total_count;
-    rmw_status->total_count_change = status.total_count_change;
+    rmw_status->total_count = offered_deadline_missed_status.total_count;
+    rmw_status->total_count_change = offered_deadline_missed_status.total_count_change;
+    offered_deadline_missed_status.total_count_change = 0;
   } else if (mask == dds_OFFERED_INCOMPATIBLE_QOS_STATUS) {
-    dds_OfferedIncompatibleQosStatus status;
-    dds_ReturnCode_t dds_ret =
-      dds_DataWriter_get_offered_incompatible_qos_status(this->topic_writer, &status);
-    rmw_ret_t rmw_ret = check_dds_ret_code(dds_ret);
-    if (rmw_ret != RMW_RET_OK) {
-      return rmw_ret;
+    if(offered_incompatible_qos_changed) {
+      offered_incompatible_qos_changed = false;
+    } else {
+      dds_DataWriter_get_offered_incompatible_qos_status(topic_writer, &offered_incompatible_qos_status);
     }
 
     auto rmw_status = static_cast<rmw_offered_qos_incompatible_event_status_t *>(event);
-    rmw_status->total_count = status.total_count;
-    rmw_status->total_count_change = status.total_count_change;
-    rmw_status->last_policy_kind = convert_qos_policy(status.last_policy_id);
+    rmw_status->total_count = offered_incompatible_qos_status.total_count;
+    rmw_status->total_count_change = offered_incompatible_qos_status.total_count_change;
+    rmw_status->last_policy_kind = convert_qos_policy(offered_incompatible_qos_status.last_policy_id);
+    offered_incompatible_qos_status.total_count_change = 0;
   } else if(mask == dds_INCONSISTENT_TOPIC_STATUS) {
-    dds_Topic* const topic = dds_DataWriter_get_topic(this->topic_writer);
-    std::lock_guard guard{mutex_cb};
     if(inconsistent_topic_changed) {
       inconsistent_topic_changed = false;
     } else {
-      auto dds_ret = dds_Topic_get_inconsistent_topic_status(topic, &inconsistent_topic_status);
-      if (dds_ret != dds_RETCODE_OK) {
-        return check_dds_ret_code(dds_ret);
-      }
+      dds_Topic* const topic = dds_DataWriter_get_topic(topic_writer);
+      dds_Topic_get_inconsistent_topic_status(topic, &inconsistent_topic_status);
     }
 
     auto const rmw_status = static_cast<rmw_incompatible_type_status_t *>(event);
@@ -459,19 +495,19 @@ rmw_ret_t GurumddsPublisherInfo::get_status(
     rmw_status->total_count_change = inconsistent_topic_status.total_count_change;
     inconsistent_topic_status.total_count_change = 0;
   } else if (mask == dds_PUBLICATION_MATCHED_STATUS) {
-    dds_PublicationMatchedStatus status{};
-    dds_ReturnCode_t dds_ret =
-      dds_DataWriter_get_publication_matched_status(this->topic_writer, &status);
-
-    if(dds_ret != dds_RETCODE_OK) {
-      return check_dds_ret_code(dds_ret);
+    if(publication_matched_changed) {
+      publication_matched_changed = false;
+    } else {
+      dds_DataWriter_get_publication_matched_status(topic_writer, &publication_matched_status);
     }
 
     auto const rmw_status = static_cast<rmw_matched_status_t *>(event);
-    rmw_status->current_count = status.current_count;
-    rmw_status->current_count_change = status.current_count_change;
-    rmw_status->total_count = status.total_count;
-    rmw_status->total_count_change = status.total_count_change;
+    rmw_status->current_count = publication_matched_status.current_count;
+    rmw_status->current_count_change = publication_matched_status.current_count_change;
+    rmw_status->total_count = publication_matched_status.total_count;
+    rmw_status->total_count_change = publication_matched_status.total_count_change;
+    publication_matched_status.current_count_change = 0;
+    publication_matched_status.total_count_change = 0;
   } else {
     return RMW_RET_UNSUPPORTED;
   }
@@ -482,7 +518,6 @@ dds_StatusCondition * GurumddsPublisherInfo::get_statuscondition()
 {
   return dds_DataWriter_get_statuscondition(this->topic_writer);
 }
-
 dds_StatusMask GurumddsPublisherInfo::get_status_changes()
 {
   return dds_DataWriter_get_status_changes(this->topic_writer);
@@ -655,10 +690,10 @@ void GurumddsSubscriberInfo::on_liveliness_changed(const dds_LivelinessChangedSt
 {
   std::lock_guard<std::mutex> guard(mutex_cb);
   liveliness_changed = true;
-  liveliness_changed_status.alive_count = status.alive_count;
-  liveliness_changed_status.not_alive_count = status.not_alive_count;
   liveliness_changed_status.alive_count_change += status.alive_count_change;
   liveliness_changed_status.not_alive_count_change += status.not_alive_count_change;
+  liveliness_changed_status.alive_count = status.alive_count;
+  liveliness_changed_status.not_alive_count = status.not_alive_count;
   auto callback = on_new_event_cb[RMW_EVENT_LIVELINESS_CHANGED];
   auto user_data = user_data_cb[RMW_EVENT_LIVELINESS_CHANGED];
   if(nullptr == callback) {
