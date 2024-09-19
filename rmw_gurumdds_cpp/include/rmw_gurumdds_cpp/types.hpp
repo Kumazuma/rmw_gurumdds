@@ -132,13 +132,19 @@ typedef struct _GurumddsSubscriberInfo : GurumddsEventInfo
   std::mutex mutex_cb;
   rmw_event_callback_t on_new_event_cb[RMW_EVENT_INVALID] = { };
   const void * user_data_cb[RMW_EVENT_INVALID] = { };
-  dds_InconsistentTopicStatus inconsistent_topic_status = { };
-  bool inconsistent_topic_changed = false;
-  dds_RequestedDeadlineMissedStatus requested_deadline_missed_status = {};
-  bool requested_deadline_missed_changed = false;
-  dds_LivelinessChangedStatus liveliness_changed_status = { };
-  bool liveliness_changed = false;
   dds_StatusMask mask = 0;
+  bool requested_deadline_missed_changed = false;
+  dds_RequestedDeadlineMissedStatus requested_deadline_missed_status = { };
+  bool requested_incompatible_qos_changed = false;
+  dds_RequestedIncompatibleQosStatus requested_incompatible_qos_status = { };
+  bool inconsistent_topic_changed = false;
+  dds_InconsistentTopicStatus inconsistent_topic_status = { };
+  bool liveliness_changed = false;
+  dds_LivelinessChangedStatus liveliness_changed_status = { };
+  bool subscription_matched_changed = false;
+  dds_SubscriptionMatchedStatus subscription_matched_status = { };
+  bool sample_lost_changed = false;
+  dds_SampleLostStatus sample_lost_status = { };
 
   rmw_gid_t subscriber_gid;
   dds_DataReader * topic_reader;
@@ -164,7 +170,13 @@ typedef struct _GurumddsSubscriberInfo : GurumddsEventInfo
 
   void on_requested_deadline_missed(const dds_RequestedDeadlineMissedStatus& status);
 
+  void on_requested_incompatible_qos(const dds_RequestedIncompatibleQosStatus& status);
+
   void on_liveliness_changed(const dds_LivelinessChangedStatus& status);
+
+  void on_subscription_matched(const dds_SubscriptionMatchedStatus& status);
+
+  void on_sample_lost(const dds_SampleLostStatus& status);
 
   size_t count_unread();
 } GurumddsSubscriberInfo;

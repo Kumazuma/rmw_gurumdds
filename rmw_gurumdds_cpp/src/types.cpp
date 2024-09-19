@@ -138,53 +138,66 @@ rmw_ret_t GurumddsSubscriberInfo::set_on_new_event_callback(
     int32_t changes;
     switch(event_type) {
       case RMW_EVENT_LIVELINESS_CHANGED:
-      {
-        dds_LivelinessChangedStatus status{};
-        dds_DataReader_get_liveliness_changed_status(topic_reader, &status);
-        changes = status.alive_count_change;
-      }
+        if(liveliness_changed) {
+          liveliness_changed = false;
+        } else {
+          dds_DataReader_get_liveliness_changed_status(topic_reader, &liveliness_changed_status);
+        }
+
+        changes = liveliness_changed_status.alive_count_change;
+        liveliness_changed_status.alive_count_change = 0;
         break;
       case RMW_EVENT_REQUESTED_DEADLINE_MISSED:
-      {
-        dds_RequestedDeadlineMissedStatus status{};
-        dds_DataReader_get_requested_deadline_missed_status(topic_reader, &status);
-        changes = status.total_count_change;
-      }
+        if(requested_deadline_missed_changed) {
+          requested_deadline_missed_changed = false;
+        } else {
+          dds_DataReader_get_requested_deadline_missed_status(topic_reader, &requested_deadline_missed_status);
+        }
+
+        changes = requested_deadline_missed_status.total_count_change;
+        requested_deadline_missed_status.total_count_change = 0;
         break;
       case RMW_EVENT_REQUESTED_QOS_INCOMPATIBLE:
-      {
-        dds_RequestedDeadlineMissedStatus status{};
-        dds_DataReader_get_requested_deadline_missed_status(topic_reader, &status);
-        changes = status.total_count_change;
-      }
+        if(requested_incompatible_qos_changed) {
+          requested_incompatible_qos_changed = false;
+        } else {
+          dds_DataReader_get_requested_incompatible_qos_status(topic_reader, &requested_incompatible_qos_status);
+        }
+
+        changes = requested_incompatible_qos_status.total_count_change;
+        requested_incompatible_qos_status.total_count_change = 0;
         break;
       case RMW_EVENT_MESSAGE_LOST:
-      {
-        dds_SampleLostStatus status{};
-        dds_DataReader_get_sample_lost_status(topic_reader, &status);
-        changes = status.total_count_change;
-      }
+        if(sample_lost_changed) {
+          sample_lost_changed = false;
+        } else {
+          dds_DataReader_get_sample_lost_status(topic_reader, &sample_lost_status);
+        }
+
+        changes = sample_lost_status.total_count_change;
+        sample_lost_status.total_count_change = 0;
         break;
       case RMW_EVENT_SUBSCRIPTION_INCOMPATIBLE_TYPE:
-      {
-        dds_Topic* topic = reinterpret_cast<dds_Topic*>(dds_DataReader_get_topicdescription(topic_reader));
         if(inconsistent_topic_changed) {
           inconsistent_topic_changed = false;
         } else {
+          dds_Topic* topic = reinterpret_cast<dds_Topic*>(dds_DataReader_get_topicdescription(topic_reader));
           dds_Topic_get_inconsistent_topic_status(topic, &inconsistent_topic_status);
         }
 
         changes = inconsistent_topic_status.total_count_change;
         inconsistent_topic_status.total_count_change = 0;
-      }
         break;
       case RMW_EVENT_SUBSCRIPTION_MATCHED:
-      {
-        dds_SubscriptionMatchedStatus status{};
-        dds_DataReader_get_subscription_matched_status(topic_reader, &status);
-        changes = status.total_count_change;
-      }
+        if(subscription_matched_changed) {
+          subscription_matched_changed = false;
+        } else {
+          dds_DataReader_get_subscription_matched_status(topic_reader, &subscription_matched_status);
+        }
 
+        changes = subscription_matched_status.total_count_change;
+        subscription_matched_status.total_count_change = 0;
+        subscription_matched_status.current_count_change = 0;
         break;
       default:
         return RMW_RET_UNSUPPORTED;
@@ -651,7 +664,20 @@ void _GurumddsSubscriberInfo::on_requested_deadline_missed(const dds_RequestedDe
   auto callback = on_new_event_cb[RMW_EVENT_LIVELINESS_CHANGED];
   auto user_data = user_data_cb[RMW_EVENT_LIVELINESS_CHANGED];
   if(nullptr == callback) {
-    callback(user_data, liveliness_changed_status.alive_count_change);
+    callback(user_data, requested_deadline_missed_status.total_count_change);
+  }
+}
+
+void _GurumddsSubscriberInfo::on_requested_incompatible_qos(const dds_RequestedIncompatibleQosStatus & status)
+{
+  std::lock_guard<std::mutex> guard(mutex_cb);
+  requested_incompatible_qos_changed = true;
+  requested_incompatible_qos_status.total_count_change += status.total_count_change;
+  requested_incompatible_qos_status.total_count = status.total_count;
+  auto callback = on_new_event_cb[RMW_EVENT_REQUESTED_QOS_INCOMPATIBLE];
+  auto user_data = user_data_cb[RMW_EVENT_REQUESTED_QOS_INCOMPATIBLE];
+  if(nullptr == callback) {
+    callback(user_data, requested_incompatible_qos_status.total_count_change);
   }
 }
 
@@ -667,6 +693,32 @@ void GurumddsSubscriberInfo::on_liveliness_changed(const dds_LivelinessChangedSt
   auto user_data = user_data_cb[RMW_EVENT_LIVELINESS_CHANGED];
   if(nullptr == callback) {
     callback(user_data, liveliness_changed_status.alive_count_change);
+  }
+}
+
+void _GurumddsSubscriberInfo::on_subscription_matched(const dds_SubscriptionMatchedStatus & status)
+{
+  std::lock_guard<std::mutex> guard(mutex_cb);
+  subscription_matched_changed = true;
+  subscription_matched_status.total_count_change += status.total_count_change;
+  subscription_matched_status.current_count_change += status.current_count_change;
+  subscription_matched_status.current_count = status.current_count;
+  subscription_matched_status.total_count = status.total_count;
+  auto callback = on_new_event_cb[RMW_EVENT_SUBSCRIPTION_MATCHED];
+  auto user_data = user_data_cb[RMW_EVENT_SUBSCRIPTION_MATCHED];
+  if(nullptr == callback) {
+    callback(user_data, subscription_matched_status.total_count_change);
+  }
+}
+void _GurumddsSubscriberInfo::on_sample_lost(const dds_SampleLostStatus & status) {
+  std::lock_guard<std::mutex> guard(mutex_cb);
+  sample_lost_changed = true;
+  sample_lost_status.total_count_change += status.total_count_change;
+  sample_lost_status.total_count = status.total_count;
+  auto callback = on_new_event_cb[RMW_EVENT_MESSAGE_LOST];
+  auto user_data = user_data_cb[RMW_EVENT_MESSAGE_LOST];
+  if(nullptr == callback) {
+    callback(user_data, sample_lost_status.total_count_change);
   }
 }
 

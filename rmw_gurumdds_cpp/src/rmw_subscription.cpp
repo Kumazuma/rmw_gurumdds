@@ -201,10 +201,17 @@ __rmw_create_subscription(
                                                    const dds_RequestedDeadlineMissedStatus* status) {
     dds_DataReader* reader = const_cast<dds_DataReader*>(topic_reader);
     GurumddsSubscriberInfo* info = static_cast<GurumddsSubscriberInfo*>(dds_DataReader_get_listener_context(reader));
-
+    info->on_requested_deadline_missed(*status);
   };
 
-  topic_listener.on_data_available = [](const dds_DataReader * topic_reader){
+  topic_listener.on_requested_incompatible_qos = [](const dds_DataReader* topic_reader,
+                                                    const dds_RequestedIncompatibleQosStatus* status) {
+    dds_DataReader* reader = const_cast<dds_DataReader*>(topic_reader);
+    GurumddsSubscriberInfo* info = static_cast<GurumddsSubscriberInfo*>(dds_DataReader_get_listener_context(reader));
+    info->on_requested_incompatible_qos(*status);
+  };
+
+  topic_listener.on_data_available = [](const dds_DataReader * topic_reader) {
     dds_DataReader* reader = const_cast<dds_DataReader*>(topic_reader);
     GurumddsSubscriberInfo* info = static_cast<GurumddsSubscriberInfo*>(dds_DataReader_get_listener_context(reader));
     std::lock_guard<std::mutex> guard(info->event_callback_data.mutex);
@@ -213,10 +220,22 @@ __rmw_create_subscription(
     }
   };
 
-  topic_listener.on_liveliness_changed = [](const dds_DataReader* topic_reader, const dds_LivelinessChangedStatus* status){
+  topic_listener.on_liveliness_changed = [](const dds_DataReader* topic_reader, const dds_LivelinessChangedStatus* status) {
     dds_DataReader* reader = const_cast<dds_DataReader*>(topic_reader);
     GurumddsSubscriberInfo* info = static_cast<GurumddsSubscriberInfo*>(dds_DataReader_get_listener_context(reader));
     info->on_liveliness_changed(*status);
+  };
+
+  topic_listener.on_subscription_matched = [](const dds_DataReader* topic_reader, const dds_SubscriptionMatchedStatus* status) {
+    dds_DataReader* reader = const_cast<dds_DataReader*>(topic_reader);
+    GurumddsSubscriberInfo* info = static_cast<GurumddsSubscriberInfo*>(dds_DataReader_get_listener_context(reader));
+    info->on_subscription_matched(*status);
+  };
+
+  topic_listener.on_sample_lost = [](const dds_DataReader* topic_reader, const dds_SampleLostStatus* status) {
+    dds_DataReader* reader = const_cast<dds_DataReader*>(topic_reader);
+    GurumddsSubscriberInfo* info = static_cast<GurumddsSubscriberInfo*>(dds_DataReader_get_listener_context(reader));
+    info->on_sample_lost(*status);
   };
 
   subscriber_info->topic_reader = topic_reader;
