@@ -263,6 +263,12 @@ bool GurumddsPublisherInfo::is_status_changed(rmw_event_type_t event_type)
   }
 }
 
+bool GurumddsPublisherInfo::has_callback(rmw_event_type_t event_type)
+{
+  // RMW_EVENT_PUBLISHER_INCOMPATIBLE_TYPE is always used with a callback
+  return ((mask & get_status_kind_from_rmw(event_type)) | dds_INCONSISTENT_TOPIC_STATUS) > 0;
+}
+
 static std::map<std::string, std::vector<uint8_t>>
 __parse_map(uint8_t * const data, const uint32_t data_len)
 {
@@ -765,6 +771,7 @@ void GurumddsSubscriberInfo::on_subscription_matched(const dds_SubscriptionMatch
 
   dds_GuardCondition_set_trigger_value(event_guard_cond[RMW_EVENT_SUBSCRIPTION_MATCHED], true);
 }
+
 void GurumddsSubscriberInfo::on_sample_lost(const dds_SampleLostStatus & status) {
   std::lock_guard<std::mutex> guard(mutex_cb);
   sample_lost_changed = true;
@@ -777,6 +784,12 @@ void GurumddsSubscriberInfo::on_sample_lost(const dds_SampleLostStatus & status)
   }
 
   dds_GuardCondition_set_trigger_value(event_guard_cond[RMW_EVENT_MESSAGE_LOST], true);
+}
+
+bool GurumddsSubscriberInfo::has_callback(rmw_event_type_t event_type)
+{
+  // RMW_EVENT_PUBLISHER_INCOMPATIBLE_TYPE is always used with a callback
+  return ((mask & get_status_kind_from_rmw(event_type)) | dds_INCONSISTENT_TOPIC_STATUS) > 0;
 }
 
 size_t GurumddsClientInfo::count_unread()

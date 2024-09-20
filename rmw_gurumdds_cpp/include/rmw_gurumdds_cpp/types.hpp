@@ -78,6 +78,8 @@ typedef struct _GurumddsEventInfo
 
   virtual bool is_status_changed(rmw_event_type_t event_type) = 0;
 
+  virtual bool has_callback(rmw_event_type_t event_type) = 0;
+
   virtual rmw_ret_t set_on_new_event_callback(
     rmw_event_type_t event_type,
     const void * user_data,
@@ -121,6 +123,9 @@ typedef struct _GurumddsPublisherInfo : GurumddsEventInfo
   dds_GuardCondition * get_guard_condition(rmw_event_type_t event_type) override;
 
   bool is_status_changed(rmw_event_type_t event_type) override;
+
+  bool has_callback(rmw_event_type_t event_type);
+
   rmw_ret_t set_on_new_event_callback(
     rmw_event_type_t event_type,
     const void * user_data,
@@ -182,6 +187,8 @@ typedef struct _GurumddsSubscriberInfo : GurumddsEventInfo
   dds_GuardCondition * get_guard_condition(rmw_event_type_t event_type) override;
 
   bool is_status_changed(rmw_event_type_t event_type) override;
+
+  bool has_callback(rmw_event_type_t event_type);
 
   rmw_ret_t set_on_new_event_callback(
     rmw_event_type_t event_type,
