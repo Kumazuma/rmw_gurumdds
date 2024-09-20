@@ -124,7 +124,9 @@ typedef struct _GurumddsPublisherInfo : GurumddsEventInfo
 
   bool is_status_changed(rmw_event_type_t event_type) override;
 
-  bool has_callback(rmw_event_type_t event_type);
+  bool has_callback(rmw_event_type_t event_type) override;
+
+  bool has_callback_unsafe(rmw_event_type_t event_type) const;
 
   rmw_ret_t set_on_new_event_callback(
     rmw_event_type_t event_type,
@@ -188,7 +190,9 @@ typedef struct _GurumddsSubscriberInfo : GurumddsEventInfo
 
   bool is_status_changed(rmw_event_type_t event_type) override;
 
-  bool has_callback(rmw_event_type_t event_type);
+  bool has_callback(rmw_event_type_t event_type) override;
+
+  bool has_callback_unsafe(rmw_event_type_t event_type) const;
 
   rmw_ret_t set_on_new_event_callback(
     rmw_event_type_t event_type,

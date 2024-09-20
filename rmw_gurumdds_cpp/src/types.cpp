@@ -246,24 +246,33 @@ dds_GuardCondition * GurumddsPublisherInfo::get_guard_condition(rmw_event_type_t
 bool GurumddsPublisherInfo::is_status_changed(rmw_event_type_t event_type)
 {
   std::lock_guard lock_guard{mutex_cb};
-  switch(event_type)
-  {
-    case RMW_EVENT_LIVELINESS_LOST:
-      return liveliness_lost_changed;
-    case RMW_EVENT_OFFERED_DEADLINE_MISSED:
-      return offered_deadline_missed_changed;
-    case RMW_EVENT_OFFERED_QOS_INCOMPATIBLE:
-      return offered_incompatible_qos_changed;
-    case RMW_EVENT_PUBLISHER_INCOMPATIBLE_TYPE:
-      return inconsistent_topic_changed;
-    case RMW_EVENT_PUBLICATION_MATCHED:
-      return publication_matched_changed;
-    default:
-      return false;
+  if(has_callback_unsafe(event_type)) {
+    switch(event_type) {
+      case RMW_EVENT_LIVELINESS_LOST:
+        return liveliness_lost_changed;
+      case RMW_EVENT_OFFERED_DEADLINE_MISSED:
+        return offered_deadline_missed_changed;
+      case RMW_EVENT_OFFERED_QOS_INCOMPATIBLE:
+        return offered_incompatible_qos_changed;
+      case RMW_EVENT_PUBLISHER_INCOMPATIBLE_TYPE:
+        return inconsistent_topic_changed;
+      case RMW_EVENT_PUBLICATION_MATCHED:
+        return publication_matched_changed;
+      default:
+        return false;
+    }
+  } else {
+    return (dds_DataWriter_get_status_changes(topic_writer) & get_status_kind_from_rmw(event_type)) > 0;
   }
 }
 
 bool GurumddsPublisherInfo::has_callback(rmw_event_type_t event_type)
+{
+  std::lock_guard lock_guard{mutex_cb};
+  return has_callback_unsafe(event_type);
+}
+
+bool GurumddsPublisherInfo::has_callback_unsafe(rmw_event_type_t event_type) const
 {
   // RMW_EVENT_PUBLISHER_INCOMPATIBLE_TYPE is always used with a callback
   return ((mask & get_status_kind_from_rmw(event_type)) | dds_INCONSISTENT_TOPIC_STATUS) > 0;
@@ -649,20 +658,23 @@ dds_GuardCondition * GurumddsSubscriberInfo::get_guard_condition(rmw_event_type_
 bool GurumddsSubscriberInfo::is_status_changed(rmw_event_type_t event_type)
 {
   std::lock_guard lock_guard{mutex_cb};
-  switch(event_type)
-  {
-    case RMW_EVENT_LIVELINESS_CHANGED:
-      return liveliness_changed;
-    case RMW_EVENT_REQUESTED_DEADLINE_MISSED:
-      return requested_deadline_missed_changed;
-    case RMW_EVENT_REQUESTED_QOS_INCOMPATIBLE:
-      return requested_incompatible_qos_changed;
-    case RMW_EVENT_SUBSCRIPTION_INCOMPATIBLE_TYPE:
-      return inconsistent_topic_changed;
-    case RMW_EVENT_SUBSCRIPTION_MATCHED:
-      return subscription_matched_changed;
-    default:
-      return false;
+  if(has_callback_unsafe(event_type)) {
+    switch (event_type) {
+      case RMW_EVENT_LIVELINESS_CHANGED:
+        return liveliness_changed;
+      case RMW_EVENT_REQUESTED_DEADLINE_MISSED:
+        return requested_deadline_missed_changed;
+      case RMW_EVENT_REQUESTED_QOS_INCOMPATIBLE:
+        return requested_incompatible_qos_changed;
+      case RMW_EVENT_SUBSCRIPTION_INCOMPATIBLE_TYPE:
+        return inconsistent_topic_changed;
+      case RMW_EVENT_SUBSCRIPTION_MATCHED:
+        return subscription_matched_changed;
+      default:
+        return false;
+    }
+  } else {
+    return (dds_DataReader_get_status_changes(topic_reader) & get_status_kind_from_rmw(event_type)) > 0;
   }
 }
 
@@ -787,6 +799,12 @@ void GurumddsSubscriberInfo::on_sample_lost(const dds_SampleLostStatus & status)
 }
 
 bool GurumddsSubscriberInfo::has_callback(rmw_event_type_t event_type)
+{
+  std::lock_guard<std::mutex> guard(mutex_cb);
+  return has_callback_unsafe(event_type);
+}
+
+bool GurumddsSubscriberInfo::has_callback_unsafe(rmw_event_type_t event_type) const
 {
   // RMW_EVENT_PUBLISHER_INCOMPATIBLE_TYPE is always used with a callback
   return ((mask & get_status_kind_from_rmw(event_type)) | dds_INCONSISTENT_TOPIC_STATUS) > 0;
