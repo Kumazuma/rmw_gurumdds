@@ -257,24 +257,38 @@ dds_GuardCondition * GurumddsPublisherInfo::get_guard_condition(rmw_event_type_t
 bool GurumddsPublisherInfo::is_status_changed(rmw_event_type_t event_type)
 {
   std::lock_guard lock_guard{mutex_event};
+  bool changed = false;
   if(has_callback_unsafe(event_type)) {
     switch(event_type) {
       case RMW_EVENT_LIVELINESS_LOST:
-        return liveliness_lost_changed;
+        changed = liveliness_lost_changed;
+        break;
       case RMW_EVENT_OFFERED_DEADLINE_MISSED:
-        return offered_deadline_missed_changed;
+        changed = offered_deadline_missed_changed;
+        break;
       case RMW_EVENT_OFFERED_QOS_INCOMPATIBLE:
-        return offered_incompatible_qos_changed;
+        changed = offered_incompatible_qos_changed;
+        break;
       case RMW_EVENT_PUBLISHER_INCOMPATIBLE_TYPE:
-        return inconsistent_topic_changed;
+        changed = inconsistent_topic_changed;
+        break;
       case RMW_EVENT_PUBLICATION_MATCHED:
-        return publication_matched_changed;
+        changed = publication_matched_changed;
+        break;
       default:
         return false;
     }
-  } else {
-    return (dds_DataWriter_get_status_changes(topic_writer) & get_status_kind_from_rmw(event_type)) > 0;
+
+    if(changed) {
+      dds_GuardCondition_set_trigger_value(event_guard_cond[event_type], false);
+    }
   }
+
+  if((dds_DataWriter_get_status_changes(topic_writer) & get_status_kind_from_rmw(event_type)) > 0) {
+    changed = true;
+  }
+
+  return changed;
 }
 
 bool GurumddsPublisherInfo::has_callback(rmw_event_type_t event_type)
@@ -681,24 +695,38 @@ dds_GuardCondition * GurumddsSubscriberInfo::get_guard_condition(rmw_event_type_
 bool GurumddsSubscriberInfo::is_status_changed(rmw_event_type_t event_type)
 {
   std::lock_guard lock_guard{mutex_event};
+  bool changed = false;
   if(has_callback_unsafe(event_type)) {
     switch (event_type) {
       case RMW_EVENT_LIVELINESS_CHANGED:
-        return liveliness_changed;
+        changed = liveliness_changed;
+        break;
       case RMW_EVENT_REQUESTED_DEADLINE_MISSED:
-        return requested_deadline_missed_changed;
+        changed = requested_deadline_missed_changed;
+        break;
       case RMW_EVENT_REQUESTED_QOS_INCOMPATIBLE:
-        return requested_incompatible_qos_changed;
+        changed = requested_incompatible_qos_changed;
+        break;
       case RMW_EVENT_SUBSCRIPTION_INCOMPATIBLE_TYPE:
-        return inconsistent_topic_changed;
+        changed = inconsistent_topic_changed;
+        break;
       case RMW_EVENT_SUBSCRIPTION_MATCHED:
-        return subscription_matched_changed;
+        changed = subscription_matched_changed;
+        break;
       default:
         return false;
     }
-  } else {
-    return (dds_DataReader_get_status_changes(topic_reader) & get_status_kind_from_rmw(event_type)) > 0;
+
+    if(changed) {
+      dds_GuardCondition_set_trigger_value(event_guard_cond[event_type], false);
+    }
   }
+
+  if((dds_DataReader_get_status_changes(topic_reader) & get_status_kind_from_rmw(event_type)) > 0) {
+    changed = true;
+  }
+
+  return changed;
 }
 
 inline size_t count_unread_(
@@ -895,7 +923,6 @@ void GurumddsTopicEventListener::on_inconsistent_topic(const dds_InconsistentTop
   for(auto it: event_list_) {
     it->update_inconsistent_topic(status.total_count, status.total_count_change);
   }
-
 }
 
 void GurumddsTopicEventListener::add_event(dds_Topic * topic, GurumddsEventInfo * event_info) {

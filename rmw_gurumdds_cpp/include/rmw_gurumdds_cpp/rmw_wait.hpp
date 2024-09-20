@@ -75,10 +75,10 @@ __gather_event_conditions(
       }
 
       status_conditions.insert(reinterpret_cast<dds_Condition *>(condition));
-    } else {
-      auto& mask = status_map[event_info->get_status_condition()];
-      mask |= get_status_kind_from_rmw(event_type);
     }
+
+    auto& mask = status_map[event_info->get_status_condition()];
+    mask |= get_status_kind_from_rmw(event_type);
   }
 
   for(auto & pair : status_map) {
