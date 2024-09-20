@@ -101,14 +101,7 @@ __handle_active_event_conditions(rmw_events_t * events)
       return RMW_RET_ERROR;
     }
 
-    dds_StatusMask mask = event_info->get_status_changes();
-    bool is_active = false;
-
-    if (is_event_supported(now->event_type)) {
-      is_active = ((mask & get_status_kind_from_rmw(now->event_type)) != 0);
-    }
-
-    if (!is_active) {
+    if (!event_info->is_status_changed(now->event_type)) {
       events->events[i] = nullptr;
     }
   }
