@@ -28,7 +28,7 @@
 
 void GurumddsPublisherInfo::update_inconsistent_topic(int32_t total_count, int32_t total_count_change)
 {
-  std::lock_guard guard_callback{mutex_cb};
+  std::lock_guard guard_callback{mutex_event};
   inconsistent_topic_changed = true;
   inconsistent_topic_status.total_count_change += total_count_change;
   inconsistent_topic_status.total_count = total_count;
@@ -44,7 +44,7 @@ void GurumddsPublisherInfo::update_inconsistent_topic(int32_t total_count, int32
 
 void GurumddsPublisherInfo::on_offered_deadline_missed(const dds_OfferedDeadlineMissedStatus & status)
 {
-  std::lock_guard guard_callback{mutex_cb};
+  std::lock_guard guard_callback{mutex_event};
   offered_deadline_missed_changed = true;
   liveliness_lost_status.total_count_change += status.total_count_change;
   liveliness_lost_status.total_count = status.total_count;
@@ -60,7 +60,7 @@ void GurumddsPublisherInfo::on_offered_deadline_missed(const dds_OfferedDeadline
 
 void GurumddsPublisherInfo::on_offered_incompatible_qos(const dds_OfferedIncompatibleQosStatus & status)
 {
-  std::lock_guard guard_callback{mutex_cb};
+  std::lock_guard guard_callback{mutex_event};
   offered_incompatible_qos_changed = true;
   offered_incompatible_qos_status.total_count_change += status.total_count_change;
   offered_incompatible_qos_status.total_count = status.total_count;
@@ -76,7 +76,7 @@ void GurumddsPublisherInfo::on_offered_incompatible_qos(const dds_OfferedIncompa
 }
 
 void GurumddsPublisherInfo::on_liveliness_lost(const dds_LivelinessLostStatus & status) {
-  std::lock_guard guard_callback{mutex_cb};
+  std::lock_guard guard_callback{mutex_event};
   liveliness_lost_changed = true;
   liveliness_lost_status.total_count_change += status.total_count_change;
   liveliness_lost_status.total_count = status.total_count;
@@ -91,7 +91,7 @@ void GurumddsPublisherInfo::on_liveliness_lost(const dds_LivelinessLostStatus & 
 }
 
 void GurumddsPublisherInfo::on_publication_matched(const dds_PublicationMatchedStatus & status) {
-  std::lock_guard guard_callback{mutex_cb};
+  std::lock_guard guard_callback{mutex_event};
   publication_matched_changed = true;
   publication_matched_status.total_count_change += status.total_count_change;
   publication_matched_status.total_count = status.total_count;
@@ -112,7 +112,7 @@ rmw_ret_t GurumddsPublisherInfo::set_on_new_event_callback(
   const void * user_data,
   rmw_event_callback_t callback) {
   // mask는 RMW 측에서 보관하게 만든다.
-  std::lock_guard guard{mutex_cb};
+  std::lock_guard guard{mutex_event};
   dds_StatusMask event_status_type = get_status_kind_from_rmw(event_type);
   if(callback != nullptr) {
     int32_t changes;
@@ -122,28 +122,33 @@ rmw_ret_t GurumddsPublisherInfo::set_on_new_event_callback(
         dds_DataWriter_get_liveliness_lost_status(topic_writer, &liveliness_lost_status);
         changes = liveliness_lost_status.total_count_change;
         liveliness_lost_status.total_count_change = 0;
+        liveliness_lost_changed = false;
         break;
       case RMW_EVENT_OFFERED_DEADLINE_MISSED:
         dds_DataWriter_get_offered_deadline_missed_status(topic_writer, &offered_deadline_missed_status);
         changes = offered_deadline_missed_status.total_count_change;
         offered_deadline_missed_status.total_count_change = 0;
+        offered_deadline_missed_changed = false;
         break;
       case RMW_EVENT_OFFERED_QOS_INCOMPATIBLE:
         dds_DataWriter_get_offered_incompatible_qos_status(topic_writer, &offered_incompatible_qos_status);
         changes = offered_incompatible_qos_status.total_count_change;
         offered_incompatible_qos_status.total_count_change = 0;
+        offered_incompatible_qos_changed = false;
         break;
       case RMW_EVENT_PUBLISHER_INCOMPATIBLE_TYPE:
         topic = dds_DataWriter_get_topic(topic_writer);
         dds_Topic_get_inconsistent_topic_status(topic, &inconsistent_topic_status);
         changes = inconsistent_topic_status.total_count_change;
         inconsistent_topic_status.total_count_change = 0;
+        inconsistent_topic_changed = false;
         break;
       case RMW_EVENT_PUBLICATION_MATCHED:
         dds_DataWriter_get_publication_matched_status(topic_writer, &publication_matched_status);
         changes = publication_matched_status.total_count_change;
         publication_matched_status.total_count_change = 0;
         publication_matched_status.current_count_change = 0;
+        publication_matched_changed = false;
         break;
       default:
           return RMW_RET_UNSUPPORTED;
@@ -162,6 +167,7 @@ rmw_ret_t GurumddsPublisherInfo::set_on_new_event_callback(
     user_data_cb[event_type] = nullptr;
   }
 
+  dds_GuardCondition_set_trigger_value(event_guard_cond[event_type], false);
   dds_DataWriter_set_listener(topic_writer, &topic_listener, mask);
 
   return RMW_RET_OK;
@@ -169,7 +175,7 @@ rmw_ret_t GurumddsPublisherInfo::set_on_new_event_callback(
 
 rmw_ret_t GurumddsPublisherInfo::get_status(rmw_event_type_t event_type, void * event)
 {
-  std::lock_guard lock_mutex{mutex_cb};
+  std::lock_guard lock_mutex{mutex_event};
   if (event_type == RMW_EVENT_LIVELINESS_LOST) {
     if(liveliness_lost_changed) {
       liveliness_lost_changed = false;
@@ -250,7 +256,7 @@ dds_GuardCondition * GurumddsPublisherInfo::get_guard_condition(rmw_event_type_t
 
 bool GurumddsPublisherInfo::is_status_changed(rmw_event_type_t event_type)
 {
-  std::lock_guard lock_guard{mutex_cb};
+  std::lock_guard lock_guard{mutex_event};
   if(has_callback_unsafe(event_type)) {
     switch(event_type) {
       case RMW_EVENT_LIVELINESS_LOST:
@@ -273,7 +279,7 @@ bool GurumddsPublisherInfo::is_status_changed(rmw_event_type_t event_type)
 
 bool GurumddsPublisherInfo::has_callback(rmw_event_type_t event_type)
 {
-  std::lock_guard lock_guard{mutex_cb};
+  std::lock_guard lock_guard{mutex_event};
   return has_callback_unsafe(event_type);
 }
 
@@ -495,7 +501,7 @@ rmw_ret_t GurumddsSubscriberInfo::set_on_new_event_callback(
   const void * user_data,
   rmw_event_callback_t callback)
 {
-  std::lock_guard guard{mutex_cb};
+  std::lock_guard guard{mutex_event};
   dds_StatusMask event_status_type = get_status_kind_from_rmw(event_type);
   if(callback != nullptr) {
     int32_t changes;
@@ -507,33 +513,39 @@ rmw_ret_t GurumddsSubscriberInfo::set_on_new_event_callback(
         changes += liveliness_changed_status.not_alive_count_change;
         liveliness_changed_status.alive_count_change = 0;
         liveliness_changed_status.not_alive_count_change = 0;
+        liveliness_changed = false;
         break;
       case RMW_EVENT_REQUESTED_DEADLINE_MISSED:
         dds_DataReader_get_requested_deadline_missed_status(topic_reader, &requested_deadline_missed_status);
         changes = requested_deadline_missed_status.total_count_change;
         requested_deadline_missed_status.total_count_change = 0;
+        requested_deadline_missed_changed = false;
         break;
       case RMW_EVENT_REQUESTED_QOS_INCOMPATIBLE:
         dds_DataReader_get_requested_incompatible_qos_status(topic_reader, &requested_incompatible_qos_status);
         changes = requested_incompatible_qos_status.total_count_change;
         requested_incompatible_qos_status.total_count_change = 0;
+        requested_incompatible_qos_changed = false;
         break;
       case RMW_EVENT_MESSAGE_LOST:
         dds_DataReader_get_sample_lost_status(topic_reader, &sample_lost_status);
         changes = sample_lost_status.total_count_change;
         sample_lost_status.total_count_change = 0;
+        sample_lost_changed = false;
         break;
       case RMW_EVENT_SUBSCRIPTION_INCOMPATIBLE_TYPE:
         topic = reinterpret_cast<dds_Topic*>(dds_DataReader_get_topicdescription(topic_reader));
         dds_Topic_get_inconsistent_topic_status(topic, &inconsistent_topic_status);
         changes = inconsistent_topic_status.total_count_change;
         inconsistent_topic_status.total_count_change = 0;
+        inconsistent_topic_changed = false;
         break;
       case RMW_EVENT_SUBSCRIPTION_MATCHED:
         dds_DataReader_get_subscription_matched_status(topic_reader, &subscription_matched_status);
         changes = subscription_matched_status.total_count_change;
         subscription_matched_status.total_count_change = 0;
         subscription_matched_status.current_count_change = 0;
+        subscription_matched_changed = false;
         break;
       default:
         return RMW_RET_UNSUPPORTED;
@@ -552,13 +564,14 @@ rmw_ret_t GurumddsSubscriberInfo::set_on_new_event_callback(
     user_data_cb[event_type] = nullptr;
   }
 
+  dds_GuardCondition_set_trigger_value(event_guard_cond[event_type], false);
   dds_DataReader_set_listener(topic_reader, &topic_listener, mask);
   return RMW_RET_OK;
 }
 
 rmw_ret_t GurumddsSubscriberInfo::get_status(rmw_event_type_t event_type, void * event)
 {
-  std::lock_guard lock_guard{mutex_cb};
+  std::lock_guard lock_guard{mutex_event};
   if (event_type == RMW_EVENT_LIVELINESS_CHANGED) {
     if(liveliness_changed) {
       liveliness_changed = false;
@@ -667,7 +680,7 @@ dds_GuardCondition * GurumddsSubscriberInfo::get_guard_condition(rmw_event_type_
 
 bool GurumddsSubscriberInfo::is_status_changed(rmw_event_type_t event_type)
 {
-  std::lock_guard lock_guard{mutex_cb};
+  std::lock_guard lock_guard{mutex_event};
   if(has_callback_unsafe(event_type)) {
     switch (event_type) {
       case RMW_EVENT_LIVELINESS_CHANGED:
@@ -729,9 +742,9 @@ size_t GurumddsSubscriberInfo::count_unread()
   return count_unread_(topic_reader, data_seq, info_seq, raw_data_sizes);
 }
 
-void _GurumddsSubscriberInfo::on_requested_deadline_missed(const dds_RequestedDeadlineMissedStatus & status)
+void GurumddsSubscriberInfo::on_requested_deadline_missed(const dds_RequestedDeadlineMissedStatus & status)
 {
-  std::lock_guard<std::mutex> guard(mutex_cb);
+  std::lock_guard guard(mutex_event);
   requested_deadline_missed_changed = true;
   requested_deadline_missed_status.total_count_change += status.total_count_change;
   requested_deadline_missed_status.total_count = status.total_count;
@@ -744,9 +757,9 @@ void _GurumddsSubscriberInfo::on_requested_deadline_missed(const dds_RequestedDe
   dds_GuardCondition_set_trigger_value(event_guard_cond[RMW_EVENT_REQUESTED_DEADLINE_MISSED], true);
 }
 
-void _GurumddsSubscriberInfo::on_requested_incompatible_qos(const dds_RequestedIncompatibleQosStatus & status)
+void GurumddsSubscriberInfo::on_requested_incompatible_qos(const dds_RequestedIncompatibleQosStatus & status)
 {
-  std::lock_guard<std::mutex> guard(mutex_cb);
+  std::lock_guard guard(mutex_event);
   requested_incompatible_qos_changed = true;
   requested_incompatible_qos_status.total_count_change += status.total_count_change;
   requested_incompatible_qos_status.total_count = status.total_count;
@@ -762,7 +775,7 @@ void _GurumddsSubscriberInfo::on_requested_incompatible_qos(const dds_RequestedI
 
 void GurumddsSubscriberInfo::on_liveliness_changed(const dds_LivelinessChangedStatus & status)
 {
-  std::lock_guard<std::mutex> guard(mutex_cb);
+  std::lock_guard guard(mutex_event);
   liveliness_changed = true;
   liveliness_changed_status.alive_count_change += status.alive_count_change;
   liveliness_changed_status.not_alive_count_change += status.not_alive_count_change;
@@ -779,7 +792,7 @@ void GurumddsSubscriberInfo::on_liveliness_changed(const dds_LivelinessChangedSt
 
 void GurumddsSubscriberInfo::on_subscription_matched(const dds_SubscriptionMatchedStatus & status)
 {
-  std::lock_guard<std::mutex> guard(mutex_cb);
+  std::lock_guard guard(mutex_event);
   subscription_matched_changed = true;
   subscription_matched_status.total_count_change += status.total_count_change;
   subscription_matched_status.current_count_change += status.current_count_change;
@@ -795,7 +808,7 @@ void GurumddsSubscriberInfo::on_subscription_matched(const dds_SubscriptionMatch
 }
 
 void GurumddsSubscriberInfo::on_sample_lost(const dds_SampleLostStatus & status) {
-  std::lock_guard<std::mutex> guard(mutex_cb);
+  std::lock_guard guard(mutex_event);
   sample_lost_changed = true;
   sample_lost_status.total_count_change += status.total_count_change;
   sample_lost_status.total_count = status.total_count;
@@ -810,7 +823,7 @@ void GurumddsSubscriberInfo::on_sample_lost(const dds_SampleLostStatus & status)
 
 bool GurumddsSubscriberInfo::has_callback(rmw_event_type_t event_type)
 {
-  std::lock_guard<std::mutex> guard(mutex_cb);
+  std::lock_guard guard(mutex_event);
   return has_callback_unsafe(event_type);
 }
 
