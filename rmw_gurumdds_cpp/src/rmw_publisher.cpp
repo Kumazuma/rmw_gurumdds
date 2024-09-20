@@ -292,7 +292,7 @@ __rmw_destroy_publisher(
   }
 
   for(auto condition: publisher_info->event_guard_cond) {
-    if(nullptr == condition) {
+    if(nullptr != condition) {
       dds_GuardCondition_delete(condition);
     }
   }
