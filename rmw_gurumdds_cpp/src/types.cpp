@@ -238,6 +238,11 @@ rmw_ret_t GurumddsPublisherInfo::get_status(rmw_event_type_t event_type, void * 
   return RMW_RET_OK;
 }
 
+dds_StatusCondition * GurumddsPublisherInfo::get_status_condition()
+{
+  return dds_DataWriter_get_statuscondition(topic_writer);
+}
+
 dds_GuardCondition * GurumddsPublisherInfo::get_guard_condition(rmw_event_type_t event_type)
 {
   return event_guard_cond[event_type];
@@ -648,6 +653,11 @@ void GurumddsSubscriberInfo::update_inconsistent_topic(int32_t total_count, int3
   }
 
   dds_GuardCondition_set_trigger_value(event_guard_cond[RMW_EVENT_SUBSCRIPTION_INCOMPATIBLE_TYPE], true);
+}
+
+dds_StatusCondition * GurumddsSubscriberInfo::get_status_condition()
+{
+  return dds_DataReader_get_statuscondition(topic_reader);
 }
 
 dds_GuardCondition * GurumddsSubscriberInfo::get_guard_condition(rmw_event_type_t event_type)

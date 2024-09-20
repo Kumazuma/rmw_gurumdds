@@ -247,9 +247,12 @@ __rmw_create_subscription(
   subscriber_info->rosidl_message_typesupport = type_support;
   subscriber_info->implementation_identifier = RMW_GURUMDDS_ID;
   subscriber_info->ctx = ctx;
-  for(auto& condition: subscriber_info->event_guard_cond) {
-    condition = dds_GuardCondition_create();
-  }
+  subscriber_info->event_guard_cond[RMW_EVENT_LIVELINESS_CHANGED] = dds_GuardCondition_create();
+  subscriber_info->event_guard_cond[RMW_EVENT_REQUESTED_DEADLINE_MISSED] = dds_GuardCondition_create();
+  subscriber_info->event_guard_cond[RMW_EVENT_REQUESTED_QOS_INCOMPATIBLE] = dds_GuardCondition_create();
+  subscriber_info->event_guard_cond[RMW_EVENT_MESSAGE_LOST] = dds_GuardCondition_create();
+  subscriber_info->event_guard_cond[RMW_EVENT_SUBSCRIPTION_INCOMPATIBLE_TYPE] = dds_GuardCondition_create();
+  subscriber_info->event_guard_cond[RMW_EVENT_SUBSCRIPTION_MATCHED] = dds_GuardCondition_create();
 
   GurumddsTopicEventListener::add_event(topic, subscriber_info);
 

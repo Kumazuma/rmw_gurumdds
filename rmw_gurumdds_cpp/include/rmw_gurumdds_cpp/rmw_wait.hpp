@@ -46,7 +46,7 @@
 inline rmw_ret_t
 __gather_event_conditions(
   rmw_events_t * events,
-  std::unordered_set<dds_GuardCondition*> & status_conditions)
+  std::unordered_set<dds_Condition*> & status_conditions)
 {
   RMW_CHECK_ARGUMENT_FOR_NULL(events, RMW_RET_INVALID_ARGUMENT);
   std::unordered_map<dds_StatusCondition *, dds_StatusMask> status_map;
@@ -61,10 +61,33 @@ __gather_event_conditions(
       return RMW_RET_ERROR;
     }
 
-    dds_GuardCondition * condition = event_info->get_guard_condition(now->event_type);
-    if(nullptr == condition) {
-      status_conditions.insert(condition);
+    const auto event_type = now->event_type;
+    if(!is_event_supported(event_type)) {
+      RMW_SET_ERROR_MSG_WITH_FORMAT_STRING("unsupported event: %d", now->event_type);
+      continue;
     }
+
+    if(event_info->has_callback(event_type)) {
+      dds_GuardCondition * condition = event_info->get_guard_condition(event_type);
+      if (nullptr == condition) {
+        RMW_SET_ERROR_MSG_WITH_FORMAT_STRING("unsupported event: %d", event_type);
+        continue;
+      }
+
+      status_conditions.insert(reinterpret_cast<dds_Condition *>(condition));
+    } else {
+      auto& mask = status_map[event_info->get_status_condition()];
+      mask |= get_status_kind_from_rmw(event_type);
+    }
+  }
+
+  for(auto & pair : status_map) {
+    if(pair.second == 0) {
+      continue;
+    }
+
+    dds_StatusCondition_set_enabled_statuses(pair.first, pair.second);
+    status_conditions.insert(reinterpret_cast<dds_Condition *>(pair.first));
   }
 
   return RMW_RET_OK;
@@ -224,7 +247,7 @@ __rmw_wait(
     }
   }
 
-  std::unordered_set<dds_GuardCondition *> status_conditions;
+  std::unordered_set<dds_Condition *> status_conditions;
 
   rmw_ret_t ret_code = __gather_event_conditions(events, status_conditions);
   if (ret_code != RMW_RET_OK) {
@@ -232,9 +255,7 @@ __rmw_wait(
   }
 
   for (auto status_condition : status_conditions) {
-    dds_ReturnCode_t ret = dds_WaitSet_attach_condition(
-      dds_wait_set,
-      reinterpret_cast<dds_Condition *>(status_condition));
+    dds_ReturnCode_t ret = dds_WaitSet_attach_condition(dds_wait_set, status_condition);
     CHECK_ATTACH(ret);
   }
 

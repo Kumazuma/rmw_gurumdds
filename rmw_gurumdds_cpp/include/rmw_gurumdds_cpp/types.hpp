@@ -74,6 +74,8 @@ typedef struct _GurumddsEventInfo
 
   virtual rmw_ret_t get_status(rmw_event_type_t event_type, void * event) = 0;
 
+  virtual dds_StatusCondition * get_status_condition() = 0;
+
   virtual dds_GuardCondition * get_guard_condition(rmw_event_type_t event_type) = 0;
 
   virtual bool is_status_changed(rmw_event_type_t event_type) = 0;
@@ -119,6 +121,8 @@ typedef struct _GurumddsPublisherInfo : GurumddsEventInfo
   dds_DataWriterListener topic_listener = { };
 
   rmw_ret_t get_status(rmw_event_type_t event_type, void * event) override;
+
+  dds_StatusCondition * get_status_condition() override;
 
   dds_GuardCondition * get_guard_condition(rmw_event_type_t event_type) override;
 
@@ -185,6 +189,8 @@ typedef struct _GurumddsSubscriberInfo : GurumddsEventInfo
   event_callback_data_t event_callback_data;
 
   rmw_ret_t get_status(rmw_event_type_t event_type, void * event) override;
+
+  dds_StatusCondition * get_status_condition() override;
 
   dds_GuardCondition * get_guard_condition(rmw_event_type_t event_type) override;
 
