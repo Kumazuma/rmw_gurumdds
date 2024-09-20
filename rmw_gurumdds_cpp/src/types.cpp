@@ -443,12 +443,11 @@ void on_subscription_changed(
   }
 }
 
-rmw_ret_t GurumddsPublisherInfo::get_status(
-  dds_StatusMask mask,
+rmw_ret_t GurumddsPublisherInfo::get_status(rmw_event_type_t event_type,
   void * event)
 {
   std::lock_guard lock_mutex{mutex_cb};
-  if (mask == dds_LIVELINESS_LOST_STATUS) {
+  if (event_type == RMW_EVENT_LIVELINESS_LOST) {
     if(liveliness_lost_changed) {
       liveliness_lost_changed = false;
     } else {
@@ -459,7 +458,7 @@ rmw_ret_t GurumddsPublisherInfo::get_status(
     rmw_status->total_count = liveliness_lost_status.total_count;
     rmw_status->total_count_change = liveliness_lost_status.total_count_change;
     liveliness_lost_status.total_count_change = 0;
-  } else if (mask == dds_OFFERED_DEADLINE_MISSED_STATUS) {
+  } else if (event_type == RMW_EVENT_OFFERED_DEADLINE_MISSED) {
     if(offered_deadline_missed_changed) {
       offered_deadline_missed_changed = false;
     } else {
@@ -470,7 +469,7 @@ rmw_ret_t GurumddsPublisherInfo::get_status(
     rmw_status->total_count = offered_deadline_missed_status.total_count;
     rmw_status->total_count_change = offered_deadline_missed_status.total_count_change;
     offered_deadline_missed_status.total_count_change = 0;
-  } else if (mask == dds_OFFERED_INCOMPATIBLE_QOS_STATUS) {
+  } else if (event_type == RMW_EVENT_OFFERED_QOS_INCOMPATIBLE) {
     if(offered_incompatible_qos_changed) {
       offered_incompatible_qos_changed = false;
     } else {
@@ -482,7 +481,7 @@ rmw_ret_t GurumddsPublisherInfo::get_status(
     rmw_status->total_count_change = offered_incompatible_qos_status.total_count_change;
     rmw_status->last_policy_kind = convert_qos_policy(offered_incompatible_qos_status.last_policy_id);
     offered_incompatible_qos_status.total_count_change = 0;
-  } else if(mask == dds_INCONSISTENT_TOPIC_STATUS) {
+  } else if(event_type == RMW_EVENT_PUBLISHER_INCOMPATIBLE_TYPE) {
     if(inconsistent_topic_changed) {
       inconsistent_topic_changed = false;
     } else {
@@ -494,7 +493,7 @@ rmw_ret_t GurumddsPublisherInfo::get_status(
     rmw_status->total_count = inconsistent_topic_status.total_count;
     rmw_status->total_count_change = inconsistent_topic_status.total_count_change;
     inconsistent_topic_status.total_count_change = 0;
-  } else if (mask == dds_PUBLICATION_MATCHED_STATUS) {
+  } else if (event_type == RMW_EVENT_PUBLICATION_MATCHED) {
     if(publication_matched_changed) {
       publication_matched_changed = false;
     } else {
@@ -523,12 +522,10 @@ dds_StatusMask GurumddsPublisherInfo::get_status_changes()
   return dds_DataWriter_get_status_changes(this->topic_writer);
 }
 
-rmw_ret_t GurumddsSubscriberInfo::get_status(
-  dds_StatusMask mask,
-  void * event)
+rmw_ret_t GurumddsSubscriberInfo::get_status(rmw_event_type_t event_type, void * event)
 {
   std::lock_guard lock_guard{mutex_cb};
-  if (mask == dds_LIVELINESS_CHANGED_STATUS) {
+  if (event_type == RMW_EVENT_LIVELINESS_CHANGED) {
     if(liveliness_changed) {
       liveliness_changed = false;
     } else {
@@ -542,7 +539,7 @@ rmw_ret_t GurumddsSubscriberInfo::get_status(
     rmw_status->not_alive_count_change = liveliness_changed_status.not_alive_count_change;
     liveliness_changed_status.alive_count_change = 0;
     liveliness_changed_status.not_alive_count_change = 0;
-  } else if (mask == dds_REQUESTED_DEADLINE_MISSED_STATUS) {
+  } else if (event_type == RMW_EVENT_REQUESTED_DEADLINE_MISSED) {
     if(requested_deadline_missed_changed) {
       requested_deadline_missed_changed = false;
     } else {
@@ -553,7 +550,7 @@ rmw_ret_t GurumddsSubscriberInfo::get_status(
     rmw_status->total_count = requested_deadline_missed_status.total_count;
     rmw_status->total_count_change = requested_deadline_missed_status.total_count_change;
     requested_deadline_missed_status.total_count_change = 0;
-  } else if (mask == dds_REQUESTED_INCOMPATIBLE_QOS_STATUS) {
+  } else if (event_type == RMW_EVENT_REQUESTED_QOS_INCOMPATIBLE) {
     if(requested_incompatible_qos_changed) {
       requested_incompatible_qos_changed = false;
     } else {
@@ -565,7 +562,7 @@ rmw_ret_t GurumddsSubscriberInfo::get_status(
     rmw_status->total_count_change = requested_incompatible_qos_status.total_count_change;
     rmw_status->last_policy_kind = convert_qos_policy(requested_incompatible_qos_status.last_policy_id);
     requested_incompatible_qos_status.total_count_change = 0;
-  } else if (mask == dds_SAMPLE_LOST_STATUS) {
+  } else if (event_type == RMW_EVENT_MESSAGE_LOST) {
     if(sample_lost_changed) {
       sample_lost_changed = false;
     } else {
@@ -576,7 +573,7 @@ rmw_ret_t GurumddsSubscriberInfo::get_status(
     rmw_status->total_count = sample_lost_status.total_count;
     rmw_status->total_count_change = sample_lost_status.total_count_change;
     sample_lost_status.total_count_change = 0;
-  } else if (mask == dds_INCONSISTENT_TOPIC_STATUS) {
+  } else if (event_type == RMW_EVENT_SUBSCRIPTION_INCOMPATIBLE_TYPE) {
     if(inconsistent_topic_changed) {
       inconsistent_topic_changed = false;
     } else {
@@ -588,7 +585,7 @@ rmw_ret_t GurumddsSubscriberInfo::get_status(
     rmw_status->total_count = inconsistent_topic_status.total_count;
     rmw_status->total_count_change = inconsistent_topic_status.total_count_change;
     inconsistent_topic_status.total_count_change = 0;
-  } else if (mask == dds_SUBSCRIPTION_MATCHED_STATUS) {
+  } else if (event_type == RMW_EVENT_SUBSCRIPTION_MATCHED) {
     if(subscription_matched_changed) {
       subscription_matched_changed = false;
     } else {

@@ -71,7 +71,7 @@ typedef struct
 typedef struct _GurumddsEventInfo
 {
   virtual ~_GurumddsEventInfo() = default;
-  virtual rmw_ret_t get_status(dds_StatusMask mask, void * event) = 0;
+  virtual rmw_ret_t get_status(rmw_event_type_t event_type, void * event) = 0;
   virtual dds_StatusCondition * get_statuscondition() = 0;
   virtual dds_StatusMask get_status_changes() = 0;
   virtual rmw_ret_t set_on_new_event_callback(
@@ -98,6 +98,8 @@ typedef struct _GurumddsPublisherInfo : GurumddsEventInfo
   std::mutex mutex_cb;
   rmw_event_callback_t on_new_event_cb[RMW_EVENT_INVALID] = { };
   const void * user_data_cb[RMW_EVENT_INVALID] = { };
+  dds_GuardCondition* event_guard_cond[RMW_EVENT_INVALID] = { };
+  dds_StatusMask mask = 0;
   bool inconsistent_topic_changed = false;
   dds_InconsistentTopicStatus inconsistent_topic_status = { };
   bool offered_deadline_missed_changed = false;
@@ -108,11 +110,9 @@ typedef struct _GurumddsPublisherInfo : GurumddsEventInfo
   dds_LivelinessLostStatus liveliness_lost_status = { };
   bool publication_matched_changed = false;
   dds_PublicationMatchedStatus publication_matched_status = { };
-  dds_StatusMask mask = 0;
   dds_DataWriterListener topic_listener = { };
 
-
-  rmw_ret_t get_status(dds_StatusMask mask, void * event) override;
+  rmw_ret_t get_status(rmw_event_type_t event_type, void * event) override;
   dds_StatusCondition * get_statuscondition() override;
   dds_StatusMask get_status_changes() override;
   rmw_ret_t set_on_new_event_callback(
@@ -146,6 +146,7 @@ typedef struct _GurumddsSubscriberInfo : GurumddsEventInfo
   std::mutex mutex_cb;
   rmw_event_callback_t on_new_event_cb[RMW_EVENT_INVALID] = { };
   const void * user_data_cb[RMW_EVENT_INVALID] = { };
+  dds_GuardCondition* event_guard_cond[RMW_EVENT_INVALID] = { };
   dds_StatusMask mask = 0;
   bool requested_deadline_missed_changed = false;
   dds_RequestedDeadlineMissedStatus requested_deadline_missed_status = { };
@@ -170,7 +171,7 @@ typedef struct _GurumddsSubscriberInfo : GurumddsEventInfo
   dds_UnsignedLongSeq * raw_data_sizes;
   event_callback_data_t event_callback_data;
 
-  rmw_ret_t get_status(dds_StatusMask mask, void * event) override;
+  rmw_ret_t get_status(rmw_event_type_t event_type, void * event) override;
   dds_StatusCondition * get_statuscondition() override;
   dds_StatusMask get_status_changes() override;
   rmw_ret_t set_on_new_event_callback(

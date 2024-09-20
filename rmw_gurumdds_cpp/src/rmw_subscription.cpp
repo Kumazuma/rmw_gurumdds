@@ -247,6 +247,10 @@ __rmw_create_subscription(
   subscriber_info->rosidl_message_typesupport = type_support;
   subscriber_info->implementation_identifier = RMW_GURUMDDS_ID;
   subscriber_info->ctx = ctx;
+  for(auto& condition: subscriber_info->event_guard_cond) {
+    condition = dds_GuardCondition_create();
+  }
+
   GurumddsTopicEventListener::add_event(topic, subscriber_info);
 
   entity_get_gid(
@@ -343,6 +347,12 @@ __rmw_destroy_subscription(
       return RMW_RET_ERROR;
     } else {
       GurumddsTopicEventListener::disassociate_Listener(topic);
+    }
+  }
+
+  for(auto condition: subscriber_info->event_guard_cond) {
+    if(nullptr != condition) {
+      dds_GuardCondition_delete(condition);
     }
   }
 

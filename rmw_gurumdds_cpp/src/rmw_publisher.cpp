@@ -202,6 +202,10 @@ __rmw_create_publisher(
   publisher_info->implementation_identifier = RMW_GURUMDDS_ID;
   publisher_info->sequence_number = 0;
   publisher_info->ctx = ctx;
+  for(auto& condition: publisher_info->event_guard_cond) {
+    condition = dds_GuardCondition_create();
+  }
+
   GurumddsTopicEventListener::add_event(topic, publisher_info);
 
   entity_get_gid(
@@ -284,6 +288,12 @@ __rmw_destroy_publisher(
       return RMW_RET_ERROR;
     } else {
       GurumddsTopicEventListener::disassociate_Listener(topic);
+    }
+  }
+
+  for(auto condition: publisher_info->event_guard_cond) {
+    if(nullptr == condition) {
+      dds_GuardCondition_delete(condition);
     }
   }
 
