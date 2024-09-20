@@ -155,21 +155,20 @@ rmw_ret_t GurumddsPublisherInfo::set_on_new_event_callback(
     }
 
     if(changes > 0) {
-      callback(user_data, event_type);
+      callback(user_data, changes);
     }
 
     mask |= event_status_type;
     on_new_event_cb[event_type] = callback;
     user_data_cb[event_type] = user_data;
+    dds_GuardCondition_set_trigger_value(event_guard_cond[event_type], false);
   } else {
     mask &= ~event_status_type;
     on_new_event_cb[event_type] = nullptr;
     user_data_cb[event_type] = nullptr;
   }
 
-  dds_GuardCondition_set_trigger_value(event_guard_cond[event_type], false);
   dds_DataWriter_set_listener(topic_writer, &topic_listener, mask);
-
   return RMW_RET_OK;
 }
 
@@ -300,7 +299,7 @@ bool GurumddsPublisherInfo::has_callback(rmw_event_type_t event_type)
 bool GurumddsPublisherInfo::has_callback_unsafe(rmw_event_type_t event_type) const
 {
   // RMW_EVENT_PUBLISHER_INCOMPATIBLE_TYPE is always used with a callback
-  return ((mask & get_status_kind_from_rmw(event_type)) | dds_INCONSISTENT_TOPIC_STATUS) > 0;
+  return ((mask | dds_INCONSISTENT_TOPIC_STATUS) & get_status_kind_from_rmw(event_type)) > 0;
 }
 
 static std::map<std::string, std::vector<uint8_t>>
@@ -858,7 +857,7 @@ bool GurumddsSubscriberInfo::has_callback(rmw_event_type_t event_type)
 bool GurumddsSubscriberInfo::has_callback_unsafe(rmw_event_type_t event_type) const
 {
   // RMW_EVENT_PUBLISHER_INCOMPATIBLE_TYPE is always used with a callback
-  return ((mask & get_status_kind_from_rmw(event_type)) | dds_INCONSISTENT_TOPIC_STATUS) > 0;
+  return ((mask | dds_INCONSISTENT_TOPIC_STATUS) & get_status_kind_from_rmw(event_type)) > 0;
 }
 
 size_t GurumddsClientInfo::count_unread()
