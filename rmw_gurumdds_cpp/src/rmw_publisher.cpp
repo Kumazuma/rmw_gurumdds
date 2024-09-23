@@ -207,7 +207,9 @@ __rmw_create_publisher(
   publisher_info->event_guard_cond[RMW_EVENT_OFFERED_QOS_INCOMPATIBLE] = dds_GuardCondition_create();
   publisher_info->event_guard_cond[RMW_EVENT_PUBLISHER_INCOMPATIBLE_TYPE] = dds_GuardCondition_create();
   publisher_info->event_guard_cond[RMW_EVENT_PUBLICATION_MATCHED] = dds_GuardCondition_create();
-
+  constexpr static dds_StatusMask mask = dds_LIVELINESS_LOST_STATUS | dds_OFFERED_DEADLINE_MISSED_STATUS | dds_OFFERED_INCOMPATIBLE_QOS_STATUS |
+    dds_PUBLICATION_MATCHED_STATUS;
+  dds_DataWriter_set_listener(topic_writer, &listener, mask);
   GurumddsTopicEventListener::add_event(topic, publisher_info);
 
   entity_get_gid(

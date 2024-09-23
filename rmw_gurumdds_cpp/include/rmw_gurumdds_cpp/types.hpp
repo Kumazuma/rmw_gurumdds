@@ -103,7 +103,7 @@ typedef struct _GurumddsPublisherInfo : GurumddsEventInfo
 
   rmw_gid_t publisher_gid;
   dds_DataWriter * topic_writer;
-  std::mutex mutex_event;
+  std::recursive_mutex mutex_event;
   rmw_event_callback_t on_new_event_cb[RMW_EVENT_INVALID] = { };
   const void * user_data_cb[RMW_EVENT_INVALID] = { };
   dds_GuardCondition* event_guard_cond[RMW_EVENT_INVALID] = { };
@@ -160,7 +160,7 @@ typedef struct _GurumddsSubscriberInfo : GurumddsEventInfo
   const rosidl_message_type_support_t * rosidl_message_typesupport;
   const char * implementation_identifier;
   rmw_context_impl_t * ctx;
-  std::mutex mutex_event;
+  std::recursive_mutex mutex_event;
   rmw_event_callback_t on_new_event_cb[RMW_EVENT_INVALID] = { };
   const void * user_data_cb[RMW_EVENT_INVALID] = { };
   dds_GuardCondition* event_guard_cond[RMW_EVENT_INVALID] = { };

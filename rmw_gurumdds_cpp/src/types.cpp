@@ -121,34 +121,23 @@ rmw_ret_t GurumddsPublisherInfo::set_on_new_event_callback(
       case RMW_EVENT_LIVELINESS_LOST:
         dds_DataWriter_get_liveliness_lost_status(topic_writer, &liveliness_lost_status);
         changes = liveliness_lost_status.total_count_change;
-        liveliness_lost_status.total_count_change = 0;
-        liveliness_lost_changed = false;
         break;
       case RMW_EVENT_OFFERED_DEADLINE_MISSED:
         dds_DataWriter_get_offered_deadline_missed_status(topic_writer, &offered_deadline_missed_status);
         changes = offered_deadline_missed_status.total_count_change;
-        offered_deadline_missed_status.total_count_change = 0;
-        offered_deadline_missed_changed = false;
         break;
       case RMW_EVENT_OFFERED_QOS_INCOMPATIBLE:
         dds_DataWriter_get_offered_incompatible_qos_status(topic_writer, &offered_incompatible_qos_status);
         changes = offered_incompatible_qos_status.total_count_change;
-        offered_incompatible_qos_status.total_count_change = 0;
-        offered_incompatible_qos_changed = false;
         break;
       case RMW_EVENT_PUBLISHER_INCOMPATIBLE_TYPE:
         topic = dds_DataWriter_get_topic(topic_writer);
         dds_Topic_get_inconsistent_topic_status(topic, &inconsistent_topic_status);
         changes = inconsistent_topic_status.total_count_change;
-        inconsistent_topic_status.total_count_change = 0;
-        inconsistent_topic_changed = false;
         break;
       case RMW_EVENT_PUBLICATION_MATCHED:
         dds_DataWriter_get_publication_matched_status(topic_writer, &publication_matched_status);
         changes = publication_matched_status.total_count_change;
-        publication_matched_status.total_count_change = 0;
-        publication_matched_status.current_count_change = 0;
-        publication_matched_changed = false;
         break;
       default:
           return RMW_RET_UNSUPPORTED;
@@ -161,14 +150,12 @@ rmw_ret_t GurumddsPublisherInfo::set_on_new_event_callback(
     mask |= event_status_type;
     on_new_event_cb[event_type] = callback;
     user_data_cb[event_type] = user_data;
-    dds_GuardCondition_set_trigger_value(event_guard_cond[event_type], false);
   } else {
     mask &= ~event_status_type;
     on_new_event_cb[event_type] = nullptr;
     user_data_cb[event_type] = nullptr;
   }
 
-  dds_DataWriter_set_listener(topic_writer, &topic_listener, mask);
   return RMW_RET_OK;
 }
 
@@ -257,30 +244,24 @@ bool GurumddsPublisherInfo::is_status_changed(rmw_event_type_t event_type)
 {
   std::lock_guard lock_guard{mutex_event};
   bool changed = false;
-  if(has_callback_unsafe(event_type)) {
-    switch(event_type) {
-      case RMW_EVENT_LIVELINESS_LOST:
-        changed = liveliness_lost_changed;
-        break;
-      case RMW_EVENT_OFFERED_DEADLINE_MISSED:
-        changed = offered_deadline_missed_changed;
-        break;
-      case RMW_EVENT_OFFERED_QOS_INCOMPATIBLE:
-        changed = offered_incompatible_qos_changed;
-        break;
-      case RMW_EVENT_PUBLISHER_INCOMPATIBLE_TYPE:
-        changed = inconsistent_topic_changed;
-        break;
-      case RMW_EVENT_PUBLICATION_MATCHED:
-        changed = publication_matched_changed;
-        break;
-      default:
-        return false;
-    }
-
-    if(changed) {
-      dds_GuardCondition_set_trigger_value(event_guard_cond[event_type], false);
-    }
+  switch(event_type) {
+    case RMW_EVENT_LIVELINESS_LOST:
+      changed = liveliness_lost_changed;
+      break;
+    case RMW_EVENT_OFFERED_DEADLINE_MISSED:
+      changed = offered_deadline_missed_changed;
+      break;
+    case RMW_EVENT_OFFERED_QOS_INCOMPATIBLE:
+      changed = offered_incompatible_qos_changed;
+      break;
+    case RMW_EVENT_PUBLISHER_INCOMPATIBLE_TYPE:
+      changed = inconsistent_topic_changed;
+      break;
+    case RMW_EVENT_PUBLICATION_MATCHED:
+      changed = publication_matched_changed;
+      break;
+    default:
+      return false;
   }
 
   if((dds_DataWriter_get_status_changes(topic_writer) & get_status_kind_from_rmw(event_type)) > 0) {
@@ -524,41 +505,27 @@ rmw_ret_t GurumddsSubscriberInfo::set_on_new_event_callback(
         dds_DataReader_get_liveliness_changed_status(topic_reader, &liveliness_changed_status);
         changes = liveliness_changed_status.alive_count_change;
         changes += liveliness_changed_status.not_alive_count_change;
-        liveliness_changed_status.alive_count_change = 0;
-        liveliness_changed_status.not_alive_count_change = 0;
-        liveliness_changed = false;
         break;
       case RMW_EVENT_REQUESTED_DEADLINE_MISSED:
         dds_DataReader_get_requested_deadline_missed_status(topic_reader, &requested_deadline_missed_status);
         changes = requested_deadline_missed_status.total_count_change;
-        requested_deadline_missed_status.total_count_change = 0;
-        requested_deadline_missed_changed = false;
         break;
       case RMW_EVENT_REQUESTED_QOS_INCOMPATIBLE:
         dds_DataReader_get_requested_incompatible_qos_status(topic_reader, &requested_incompatible_qos_status);
         changes = requested_incompatible_qos_status.total_count_change;
-        requested_incompatible_qos_status.total_count_change = 0;
-        requested_incompatible_qos_changed = false;
         break;
       case RMW_EVENT_MESSAGE_LOST:
         dds_DataReader_get_sample_lost_status(topic_reader, &sample_lost_status);
         changes = sample_lost_status.total_count_change;
-        sample_lost_status.total_count_change = 0;
-        sample_lost_changed = false;
         break;
       case RMW_EVENT_SUBSCRIPTION_INCOMPATIBLE_TYPE:
         topic = reinterpret_cast<dds_Topic*>(dds_DataReader_get_topicdescription(topic_reader));
         dds_Topic_get_inconsistent_topic_status(topic, &inconsistent_topic_status);
         changes = inconsistent_topic_status.total_count_change;
-        inconsistent_topic_status.total_count_change = 0;
-        inconsistent_topic_changed = false;
         break;
       case RMW_EVENT_SUBSCRIPTION_MATCHED:
         dds_DataReader_get_subscription_matched_status(topic_reader, &subscription_matched_status);
         changes = subscription_matched_status.total_count_change;
-        subscription_matched_status.total_count_change = 0;
-        subscription_matched_status.current_count_change = 0;
-        subscription_matched_changed = false;
         break;
       default:
         return RMW_RET_UNSUPPORTED;
@@ -568,17 +535,13 @@ rmw_ret_t GurumddsSubscriberInfo::set_on_new_event_callback(
       callback(user_data, changes);
     }
 
-    mask |= event_status_type;
     on_new_event_cb[event_type] = callback;
     user_data_cb[event_type] = user_data;
   } else {
-    mask &= ~event_status_type;
     on_new_event_cb[event_type] = nullptr;
     user_data_cb[event_type] = nullptr;
   }
 
-  dds_GuardCondition_set_trigger_value(event_guard_cond[event_type], false);
-  dds_DataReader_set_listener(topic_reader, &topic_listener, mask);
   return RMW_RET_OK;
 }
 
@@ -695,30 +658,28 @@ bool GurumddsSubscriberInfo::is_status_changed(rmw_event_type_t event_type)
 {
   std::lock_guard lock_guard{mutex_event};
   bool changed = false;
-  if(has_callback_unsafe(event_type)) {
-    switch (event_type) {
-      case RMW_EVENT_LIVELINESS_CHANGED:
-        changed = liveliness_changed;
-        break;
-      case RMW_EVENT_REQUESTED_DEADLINE_MISSED:
-        changed = requested_deadline_missed_changed;
-        break;
-      case RMW_EVENT_REQUESTED_QOS_INCOMPATIBLE:
-        changed = requested_incompatible_qos_changed;
-        break;
-      case RMW_EVENT_SUBSCRIPTION_INCOMPATIBLE_TYPE:
-        changed = inconsistent_topic_changed;
-        break;
-      case RMW_EVENT_SUBSCRIPTION_MATCHED:
-        changed = subscription_matched_changed;
-        break;
-      default:
-        return false;
-    }
+  switch (event_type) {
+    case RMW_EVENT_LIVELINESS_CHANGED:
+      changed = liveliness_changed;
+      break;
+    case RMW_EVENT_REQUESTED_DEADLINE_MISSED:
+      changed = requested_deadline_missed_changed;
+      break;
+    case RMW_EVENT_REQUESTED_QOS_INCOMPATIBLE:
+      changed = requested_incompatible_qos_changed;
+      break;
+    case RMW_EVENT_SUBSCRIPTION_INCOMPATIBLE_TYPE:
+      changed = inconsistent_topic_changed;
+      break;
+    case RMW_EVENT_SUBSCRIPTION_MATCHED:
+      changed = subscription_matched_changed;
+      break;
+    default:
+      return false;
+  }
 
-    if(changed) {
-      dds_GuardCondition_set_trigger_value(event_guard_cond[event_type], false);
-    }
+  if(changed) {
+    dds_GuardCondition_set_trigger_value(event_guard_cond[event_type], false);
   }
 
   if((dds_DataReader_get_status_changes(topic_reader) & get_status_kind_from_rmw(event_type)) > 0) {

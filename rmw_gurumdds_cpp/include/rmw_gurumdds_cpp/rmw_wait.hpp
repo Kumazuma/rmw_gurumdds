@@ -67,27 +67,13 @@ __gather_event_conditions(
       continue;
     }
 
-    if(event_info->has_callback(event_type)) {
-      dds_GuardCondition * condition = event_info->get_guard_condition(event_type);
-      if (nullptr == condition) {
-        RMW_SET_ERROR_MSG_WITH_FORMAT_STRING("unsupported event: %d", event_type);
-        continue;
-      }
-
-      status_conditions.insert(reinterpret_cast<dds_Condition *>(condition));
-    }
-
-    auto& mask = status_map[event_info->get_status_condition()];
-    mask |= get_status_kind_from_rmw(event_type);
-  }
-
-  for(auto & pair : status_map) {
-    if(pair.second == 0) {
+    dds_GuardCondition * condition = event_info->get_guard_condition(event_type);
+    if (nullptr == condition) {
+      RMW_SET_ERROR_MSG_WITH_FORMAT_STRING("unsupported event: %d", event_type);
       continue;
     }
 
-    dds_StatusCondition_set_enabled_statuses(pair.first, pair.second);
-    status_conditions.insert(reinterpret_cast<dds_Condition *>(pair.first));
+    status_conditions.insert(reinterpret_cast<dds_Condition *>(condition));
   }
 
   return RMW_RET_OK;
