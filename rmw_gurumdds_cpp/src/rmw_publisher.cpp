@@ -209,8 +209,8 @@ __rmw_create_publisher(
   publisher_info->event_guard_cond[RMW_EVENT_PUBLICATION_MATCHED] = dds_GuardCondition_create();
   constexpr static dds_StatusMask mask = dds_LIVELINESS_LOST_STATUS | dds_OFFERED_DEADLINE_MISSED_STATUS | dds_OFFERED_INCOMPATIBLE_QOS_STATUS |
     dds_PUBLICATION_MATCHED_STATUS;
-  dds_DataWriter_set_listener(topic_writer, &listener, mask);
   GurumddsTopicEventListener::add_event(topic, publisher_info);
+  dds_DataWriter_set_listener(publisher_info->topic_writer, &publisher_info->topic_listener, mask);
 
   entity_get_gid(
     reinterpret_cast<dds_Entity *>(publisher_info->topic_writer),

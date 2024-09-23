@@ -256,7 +256,7 @@ __rmw_create_subscription(
   subscriber_info->mask = dds_LIVELINESS_CHANGED_STATUS | dds_REQUESTED_DEADLINE_MISSED_STATUS | dds_REQUESTED_INCOMPATIBLE_QOS_STATUS |
                           dds_SAMPLE_LOST_STATUS | dds_SUBSCRIPTION_MATCHED_STATUS;
   GurumddsTopicEventListener::add_event(topic, subscriber_info);
-  dds_DataReader_set_listener(topic_reader, &topic_listener, subscriber_info->mask);
+  dds_DataReader_set_listener(topic_reader, &subscriber_info->topic_listener, subscriber_info->mask);
   entity_get_gid(
     reinterpret_cast<dds_Entity *>(subscriber_info->topic_reader),
     subscriber_info->subscriber_gid);
