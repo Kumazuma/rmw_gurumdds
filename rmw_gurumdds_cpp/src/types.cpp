@@ -35,7 +35,7 @@ void GurumddsPublisherInfo::update_inconsistent_topic(int32_t total_count, int32
 
   auto callback = on_new_event_cb[RMW_EVENT_PUBLISHER_INCOMPATIBLE_TYPE];
   auto user_data = user_data_cb[RMW_EVENT_PUBLISHER_INCOMPATIBLE_TYPE];
-  if(nullptr == callback) {
+  if(nullptr != callback) {
     callback(user_data, total_count_change);
   }
 
@@ -51,7 +51,7 @@ void GurumddsPublisherInfo::on_offered_deadline_missed(const dds_OfferedDeadline
 
   auto callback = on_new_event_cb[RMW_EVENT_OFFERED_DEADLINE_MISSED];
   auto user_data = user_data_cb[RMW_EVENT_OFFERED_DEADLINE_MISSED];
-  if(nullptr == callback) {
+  if(nullptr != callback) {
     callback(user_data, liveliness_lost_status.total_count_change);
   }
 
@@ -68,7 +68,7 @@ void GurumddsPublisherInfo::on_offered_incompatible_qos(const dds_OfferedIncompa
 
   auto callback = on_new_event_cb[RMW_EVENT_OFFERED_QOS_INCOMPATIBLE];
   auto user_data = user_data_cb[RMW_EVENT_OFFERED_QOS_INCOMPATIBLE];
-  if(nullptr == callback) {
+  if(nullptr != callback) {
     callback(user_data, offered_incompatible_qos_status.total_count_change);
   }
 
@@ -83,7 +83,7 @@ void GurumddsPublisherInfo::on_liveliness_lost(const dds_LivelinessLostStatus & 
 
   auto callback = on_new_event_cb[RMW_EVENT_LIVELINESS_LOST];
   auto user_data = user_data_cb[RMW_EVENT_LIVELINESS_LOST];
-  if(nullptr == callback) {
+  if(nullptr != callback) {
     callback(user_data, liveliness_lost_status.total_count_change);
   }
 
@@ -100,7 +100,7 @@ void GurumddsPublisherInfo::on_publication_matched(const dds_PublicationMatchedS
 
   auto callback = on_new_event_cb[RMW_EVENT_PUBLICATION_MATCHED];
   auto user_data = user_data_cb[RMW_EVENT_PUBLICATION_MATCHED];
-  if(nullptr == callback) {
+  if(nullptr != callback) {
     callback(user_data, publication_matched_status.total_count_change);
   }
 
@@ -637,7 +637,7 @@ void GurumddsSubscriberInfo::update_inconsistent_topic(int32_t total_count, int3
 
   auto callback = on_new_event_cb[RMW_EVENT_SUBSCRIPTION_INCOMPATIBLE_TYPE];
   auto user_data = user_data_cb[RMW_EVENT_SUBSCRIPTION_INCOMPATIBLE_TYPE];
-  if(nullptr == callback) {
+  if(nullptr != callback) {
     callback(user_data, total_count_change);
   }
 
@@ -738,7 +738,7 @@ void GurumddsSubscriberInfo::on_requested_deadline_missed(const dds_RequestedDea
   requested_deadline_missed_status.total_count = status.total_count;
   auto callback = on_new_event_cb[RMW_EVENT_LIVELINESS_CHANGED];
   auto user_data = user_data_cb[RMW_EVENT_LIVELINESS_CHANGED];
-  if(nullptr == callback) {
+  if(nullptr != callback) {
     callback(user_data, requested_deadline_missed_status.total_count_change);
   }
 
@@ -754,7 +754,7 @@ void GurumddsSubscriberInfo::on_requested_incompatible_qos(const dds_RequestedIn
   requested_incompatible_qos_status.last_policy_id = status.last_policy_id;
   auto callback = on_new_event_cb[RMW_EVENT_REQUESTED_QOS_INCOMPATIBLE];
   auto user_data = user_data_cb[RMW_EVENT_REQUESTED_QOS_INCOMPATIBLE];
-  if(nullptr == callback) {
+  if(nullptr != callback) {
     callback(user_data, requested_incompatible_qos_status.total_count_change);
   }
 
@@ -771,7 +771,7 @@ void GurumddsSubscriberInfo::on_liveliness_changed(const dds_LivelinessChangedSt
   liveliness_changed_status.not_alive_count = status.not_alive_count;
   auto callback = on_new_event_cb[RMW_EVENT_LIVELINESS_CHANGED];
   auto user_data = user_data_cb[RMW_EVENT_LIVELINESS_CHANGED];
-  if(nullptr == callback) {
+  if(nullptr != callback) {
     callback(user_data, liveliness_changed_status.alive_count_change);
   }
 
@@ -788,7 +788,7 @@ void GurumddsSubscriberInfo::on_subscription_matched(const dds_SubscriptionMatch
   subscription_matched_status.total_count = status.total_count;
   auto callback = on_new_event_cb[RMW_EVENT_SUBSCRIPTION_MATCHED];
   auto user_data = user_data_cb[RMW_EVENT_SUBSCRIPTION_MATCHED];
-  if(nullptr == callback) {
+  if(nullptr != callback) {
     callback(user_data, subscription_matched_status.total_count_change);
   }
 
@@ -802,7 +802,7 @@ void GurumddsSubscriberInfo::on_sample_lost(const dds_SampleLostStatus & status)
   sample_lost_status.total_count = status.total_count;
   auto callback = on_new_event_cb[RMW_EVENT_MESSAGE_LOST];
   auto user_data = user_data_cb[RMW_EVENT_MESSAGE_LOST];
-  if(nullptr == callback) {
+  if(nullptr != callback) {
     callback(user_data, sample_lost_status.total_count_change);
   }
 
