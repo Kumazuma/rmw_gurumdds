@@ -524,30 +524,18 @@ void MessageSerializer::serialize_struct_arr(
     if (!member->array_size_ || member->is_upper_bound_) {
       // Sequence
       buffer << static_cast<uint32_t>(member->size_function(input + member->offset_));
-      for (uint32_t i = 0; i < member->size_function(input + member->offset_); i++) {
-        serialize(
-          reinterpret_cast<const rosidl_typesupport_introspection_c__MessageMembers *>(
-            member->members_->data
+    }
+
+    for (uint32_t i = 0; i < member->size_function(input + member->offset_); i++) {
+      serialize(
+        reinterpret_cast<const rosidl_typesupport_introspection_c__MessageMembers *>(
+          member->members_->data
           ),
-          reinterpret_cast<const uint8_t *>(
-            member->get_const_function(input + member->offset_, i)
-          ),
-          false
-        );
-      }
-    } else {
-      const void * tmp = input + member->offset_;
-      for (uint32_t i = 0; i < member->size_function(input + member->offset_); i++) {
-        serialize(
-          reinterpret_cast<const rosidl_typesupport_introspection_c__MessageMembers *>(
-            member->members_->data
-          ),
-          reinterpret_cast<const uint8_t *>(
-            member->get_const_function(&tmp, i)
-          ),
-          false
-        );
-      }
+        reinterpret_cast<const uint8_t *>(
+          member->get_const_function(input + member->offset_, i)
+            ),
+        false
+      );
     }
   } else {
     serialize(
