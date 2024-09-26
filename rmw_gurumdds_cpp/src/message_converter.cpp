@@ -122,10 +122,83 @@
     } \
   }
 
-SERIALIZER_CPP_SERIALIZE_PRIMITIVE(8)
-SERIALIZER_CPP_SERIALIZE_PRIMITIVE(16)
-SERIALIZER_CPP_SERIALIZE_PRIMITIVE(32)
-SERIALIZER_CPP_SERIALIZE_PRIMITIVE(64)
+template <>
+void MessageSerializer::serialize_primitive<uint8_t>(
+  const rosidl_typesupport_introspection_cpp::MessageMember *member, const uint8_t *input)
+{
+  if (member->is_array_)
+  {
+    if (!member->array_size_ || member->is_upper_bound_)
+    {
+      buffer << static_cast<uint32_t>(member->size_function(input + member->offset_));
+    }
+    buffer.copy_arr(
+      reinterpret_cast<const uint8_t *>(member->get_const_function(input + member->offset_, 0)),
+      member->size_function(input + member->offset_));
+  }
+  else
+  {
+    buffer << *(reinterpret_cast<const uint8_t *>(input + member->offset_));
+  }
+}
+
+template <>
+void MessageSerializer::serialize_primitive<uint16_t>(
+  const rosidl_typesupport_introspection_cpp::MessageMember *member, const uint8_t *input)
+{
+  if (member->is_array_)
+  {
+    if (!member->array_size_ || member->is_upper_bound_)
+    {
+      buffer << static_cast<uint32_t>(member->size_function(input + member->offset_));
+    }
+    buffer.copy_arr(
+      reinterpret_cast<const uint16_t *>(member->get_const_function(input + member->offset_, 0)),
+      member->size_function(input + member->offset_));
+  }
+  else
+  {
+    buffer << *(reinterpret_cast<const uint16_t *>(input + member->offset_));
+  }
+}
+template <>
+void MessageSerializer::serialize_primitive<uint32_t>(
+  const rosidl_typesupport_introspection_cpp::MessageMember *member, const uint8_t *input)
+{
+  if (member->is_array_)
+  {
+    if (!member->array_size_ || member->is_upper_bound_)
+    {
+      buffer << static_cast<uint32_t>(member->size_function(input + member->offset_));
+    }
+    buffer.copy_arr(
+      reinterpret_cast<const uint32_t *>(member->get_const_function(input + member->offset_, 0)),
+      member->size_function(input + member->offset_));
+  }
+  else
+  {
+    buffer << *(reinterpret_cast<const uint32_t *>(input + member->offset_));
+  }
+}
+template <>
+void MessageSerializer::serialize_primitive<uint64_t>(
+  const rosidl_typesupport_introspection_cpp::MessageMember *member, const uint8_t *input)
+{
+  if (member->is_array_)
+  {
+    if (!member->array_size_ || member->is_upper_bound_)
+    {
+      buffer << static_cast<uint32_t>(member->size_function(input + member->offset_));
+    }
+    buffer.copy_arr(
+      reinterpret_cast<const uint64_t *>(member->get_const_function(input + member->offset_, 0)),
+      member->size_function(input + member->offset_));
+  }
+  else
+  {
+    buffer << *(reinterpret_cast<const uint64_t *>(input + member->offset_));
+  }
+}
 
 template<>
 void MessageSerializer::serialize_boolean(
@@ -166,14 +239,10 @@ void MessageSerializer::serialize_wchar(
     }
 
     for (uint32_t i = 0; i < member->size_function(input + member->offset_); i++) {
-      buffer <<
-        static_cast<uint32_t>(
-        *(reinterpret_cast<const uint16_t *>(
-          member->get_const_function(input + member->offset_, i))));
+      buffer << *(reinterpret_cast<const uint16_t *>(member->get_const_function(input + member->offset_, i)));
     }
   } else {
-    buffer <<
-      static_cast<uint32_t>(*(reinterpret_cast<const uint16_t *>(input + member->offset_)));
+    buffer << *(reinterpret_cast<const uint16_t *>(input + member->offset_));
   }
 }
 
@@ -253,10 +322,94 @@ void MessageSerializer::serialize_struct_arr(
   }
 }
 
-SERIALIZER_C_SERIALIZE_PRIMITIVE(8)
-SERIALIZER_C_SERIALIZE_PRIMITIVE(16)
-SERIALIZER_C_SERIALIZE_PRIMITIVE(32)
-SERIALIZER_C_SERIALIZE_PRIMITIVE(64)
+template <>
+void MessageSerializer::serialize_primitive<uint8_t>(
+  const rosidl_typesupport_introspection_c__MessageMember *member, const uint8_t *input)
+{
+  if (member->is_array_)
+  {
+    if (!member->array_size_ || member->is_upper_bound_)
+    {
+      auto seq = *(reinterpret_cast<const rosidl_runtime_c__uint8__Sequence *>(input + member->offset_));
+      buffer << static_cast<uint32_t>(seq.size);
+      buffer.copy_arr(seq.data, seq.size);
+    }
+    else
+    {
+      buffer.copy_arr(reinterpret_cast<const uint8_t *>(input + member->offset_), member->array_size_);
+    }
+  }
+  else
+  {
+    buffer << *(reinterpret_cast<const uint8_t *>(input + member->offset_));
+  }
+}
+template <>
+void MessageSerializer::serialize_primitive<uint16_t>(
+  const rosidl_typesupport_introspection_c__MessageMember *member, const uint8_t *input)
+{
+  if (member->is_array_)
+  {
+    if (!member->array_size_ || member->is_upper_bound_)
+    {
+      auto seq = *(reinterpret_cast<const rosidl_runtime_c__uint16__Sequence *>(input + member->offset_));
+      buffer << static_cast<uint32_t>(seq.size);
+      buffer.copy_arr(seq.data, seq.size);
+    }
+    else
+    {
+      buffer.copy_arr(reinterpret_cast<const uint16_t *>(input + member->offset_), member->array_size_);
+    }
+  }
+  else
+  {
+    buffer << *(reinterpret_cast<const uint16_t *>(input + member->offset_));
+  }
+}
+template <>
+void MessageSerializer::serialize_primitive<uint32_t>(
+  const rosidl_typesupport_introspection_c__MessageMember *member, const uint8_t *input)
+{
+  if (member->is_array_)
+  {
+    if (!member->array_size_ || member->is_upper_bound_)
+    {
+      auto seq = *(reinterpret_cast<const rosidl_runtime_c__uint32__Sequence *>(input + member->offset_));
+      buffer << static_cast<uint32_t>(seq.size);
+      buffer.copy_arr(seq.data, seq.size);
+    }
+    else
+    {
+      buffer.copy_arr(reinterpret_cast<const uint32_t *>(input + member->offset_), member->array_size_);
+    }
+  }
+  else
+  {
+    buffer << *(reinterpret_cast<const uint32_t *>(input + member->offset_));
+  }
+}
+template <>
+void MessageSerializer::serialize_primitive<uint64_t>(
+  const rosidl_typesupport_introspection_c__MessageMember *member, const uint8_t *input)
+{
+  if (member->is_array_)
+  {
+    if (!member->array_size_ || member->is_upper_bound_)
+    {
+      auto seq = *(reinterpret_cast<const rosidl_runtime_c__uint64__Sequence *>(input + member->offset_));
+      buffer << static_cast<uint32_t>(seq.size);
+      buffer.copy_arr(seq.data, seq.size);
+    }
+    else
+    {
+      buffer.copy_arr(reinterpret_cast<const uint64_t *>(input + member->offset_), member->array_size_);
+    }
+  }
+  else
+  {
+    buffer << *(reinterpret_cast<const uint64_t *>(input + member->offset_));
+  }
+}
 
 template<>
 void MessageSerializer::serialize_boolean(
@@ -299,12 +452,11 @@ void MessageSerializer::serialize_wchar(
       buffer << static_cast<uint32_t>(seq.size);
 
       for (uint32_t i = 0; i < seq.size; i++) {
-        buffer << static_cast<uint32_t>(seq.data[i]);
+        buffer << seq.data[i];
       }
     }
   } else {
-    buffer <<
-      static_cast<uint32_t>(*(reinterpret_cast<const uint16_t *>(input + member->offset_)));
+    buffer << *(reinterpret_cast<const uint16_t *>(input + member->offset_));
   }
 }
 
@@ -413,11 +565,90 @@ void MessageSerializer::serialize_struct_arr(
 
 // ================================================================================================
 
-
-DESERIALIZER_CPP_DESERIALIZE_PRIMITIVE(8)
-DESERIALIZER_CPP_DESERIALIZE_PRIMITIVE(16)
-DESERIALIZER_CPP_DESERIALIZE_PRIMITIVE(32)
-DESERIALIZER_CPP_DESERIALIZE_PRIMITIVE(64)
+template <>
+void MessageDeserializer::deserialize_primitive<uint8_t>(
+  const rosidl_typesupport_introspection_cpp::MessageMember *member, uint8_t *output)
+{
+  if (member->is_array_)
+  {
+    if (!member->array_size_ || member->is_upper_bound_)
+    {
+      uint32_t size = 0;
+      buffer >> size;
+      member->resize_function(output + member->offset_, static_cast<size_t>(size));
+    }
+    buffer.copy_arr(
+      reinterpret_cast<uint8_t *>(member->get_function(output + member->offset_, 0)),
+      member->size_function(output + member->offset_));
+  }
+  else
+  {
+    buffer >> *(reinterpret_cast<uint8_t *>(output + member->offset_));
+  }
+}
+template <>
+void MessageDeserializer::deserialize_primitive<uint16_t>(
+  const rosidl_typesupport_introspection_cpp::MessageMember *member, uint8_t *output)
+{
+  if (member->is_array_)
+  {
+    if (!member->array_size_ || member->is_upper_bound_)
+    {
+      uint32_t size = 0;
+      buffer >> size;
+      member->resize_function(output + member->offset_, static_cast<size_t>(size));
+    }
+    buffer.copy_arr(
+      reinterpret_cast<uint16_t *>(member->get_function(output + member->offset_, 0)),
+      member->size_function(output + member->offset_));
+  }
+  else
+  {
+    buffer >> *(reinterpret_cast<uint16_t *>(output + member->offset_));
+  }
+}
+template <>
+void MessageDeserializer::deserialize_primitive<uint32_t>(
+  const rosidl_typesupport_introspection_cpp::MessageMember *member, uint8_t *output)
+{
+  if (member->is_array_)
+  {
+    if (!member->array_size_ || member->is_upper_bound_)
+    {
+      uint32_t size = 0;
+      buffer >> size;
+      member->resize_function(output + member->offset_, static_cast<size_t>(size));
+    }
+    buffer.copy_arr(
+      reinterpret_cast<uint32_t *>(member->get_function(output + member->offset_, 0)),
+      member->size_function(output + member->offset_));
+  }
+  else
+  {
+    buffer >> *(reinterpret_cast<uint32_t *>(output + member->offset_));
+  }
+}
+template <>
+void MessageDeserializer::deserialize_primitive<uint64_t>(
+  const rosidl_typesupport_introspection_cpp::MessageMember *member, uint8_t *output)
+{
+  if (member->is_array_)
+  {
+    if (!member->array_size_ || member->is_upper_bound_)
+    {
+      uint32_t size = 0;
+      buffer >> size;
+      member->resize_function(output + member->offset_, static_cast<size_t>(size));
+    }
+    buffer.copy_arr(
+      reinterpret_cast<uint64_t *>(member->get_function(output + member->offset_, 0)),
+      member->size_function(output + member->offset_));
+  }
+  else
+  {
+    buffer >> *(reinterpret_cast<uint64_t *>(output + member->offset_));
+  }
+}
 
 template<>
 void MessageDeserializer::deserialize_boolean(
@@ -467,15 +698,14 @@ void MessageDeserializer::deserialize_wchar(
     }
 
     for (uint32_t i = 0; i < member->size_function(output + member->offset_); i++) {
-      uint32_t data = 0;
+      uint16_t data = 0;
       buffer >> data;
-      *(reinterpret_cast<uint16_t *>(member->get_function(output + member->offset_, i))) =
-        static_cast<uint16_t>(data);
+      *(reinterpret_cast<uint16_t *>(member->get_function(output + member->offset_, i))) = data;
     }
   } else {
-    uint32_t data = 0;
+    uint16_t data = 0;
     buffer >> data;
-    *(reinterpret_cast<uint16_t *>(output + member->offset_)) = static_cast<uint16_t>(data);
+    *(reinterpret_cast<uint16_t *>(output + member->offset_)) = data;
   }
 }
 
@@ -557,10 +787,134 @@ void MessageDeserializer::deserialize_struct_arr(
   }
 }
 
-DESERIALIZER_C_DESERIALIZE_PRIMITIVE(8)
-DESERIALIZER_C_DESERIALIZE_PRIMITIVE(16)
-DESERIALIZER_C_DESERIALIZE_PRIMITIVE(32)
-DESERIALIZER_C_DESERIALIZE_PRIMITIVE(64)
+template <>
+void MessageDeserializer::deserialize_primitive<uint8_t>(
+  const rosidl_typesupport_introspection_c__MessageMember *member, uint8_t *output)
+{
+  if (member->is_array_)
+  {
+    if (!member->array_size_ || member->is_upper_bound_)
+    {
+      uint32_t size = 0;
+      buffer >> size;
+      auto seq_ptr = (reinterpret_cast<rosidl_runtime_c__uint8__Sequence *>(output + member->offset_));
+      if (seq_ptr->data)
+      {
+        rosidl_runtime_c__uint8__Sequence__fini(seq_ptr);
+      }
+      bool res = rosidl_runtime_c__uint8__Sequence__init(seq_ptr, size);
+      if (!res)
+      {
+        throw std::runtime_error("Failed to initialize sequence");
+      }
+      buffer.copy_arr(seq_ptr->data, seq_ptr->size);
+    }
+    else
+    {
+      buffer.copy_arr(reinterpret_cast<uint8_t *>(output + member->offset_), member->array_size_);
+    }
+  }
+  else
+  {
+    buffer >> *(reinterpret_cast<uint8_t *>(output + member->offset_));
+  }
+}
+template <>
+void MessageDeserializer::deserialize_primitive<uint16_t>(
+  const rosidl_typesupport_introspection_c__MessageMember *member, uint8_t *output)
+{
+  if (member->is_array_)
+  {
+    if (!member->array_size_ || member->is_upper_bound_)
+    {
+      uint32_t size = 0;
+      buffer >> size;
+      auto seq_ptr = (reinterpret_cast<rosidl_runtime_c__uint16__Sequence *>(output + member->offset_));
+      if (seq_ptr->data)
+      {
+        rosidl_runtime_c__uint16__Sequence__fini(seq_ptr);
+      }
+      bool res = rosidl_runtime_c__uint16__Sequence__init(seq_ptr, size);
+      if (!res)
+      {
+        throw std::runtime_error("Failed to initialize sequence");
+      }
+      buffer.copy_arr(seq_ptr->data, seq_ptr->size);
+    }
+    else
+    {
+      buffer.copy_arr(reinterpret_cast<uint16_t *>(output + member->offset_), member->array_size_);
+    }
+  }
+  else
+  {
+    buffer >> *(reinterpret_cast<uint16_t *>(output + member->offset_));
+  }
+}
+template <>
+void MessageDeserializer::deserialize_primitive<uint32_t>(
+  const rosidl_typesupport_introspection_c__MessageMember *member, uint8_t *output)
+{
+  if (member->is_array_)
+  {
+    if (!member->array_size_ || member->is_upper_bound_)
+    {
+      uint32_t size = 0;
+      buffer >> size;
+      auto seq_ptr = (reinterpret_cast<rosidl_runtime_c__uint32__Sequence *>(output + member->offset_));
+      if (seq_ptr->data)
+      {
+        rosidl_runtime_c__uint32__Sequence__fini(seq_ptr);
+      }
+      bool res = rosidl_runtime_c__uint32__Sequence__init(seq_ptr, size);
+      if (!res)
+      {
+        throw std::runtime_error("Failed to initialize sequence");
+      }
+      buffer.copy_arr(seq_ptr->data, seq_ptr->size);
+    }
+    else
+    {
+      buffer.copy_arr(reinterpret_cast<uint32_t *>(output + member->offset_), member->array_size_);
+    }
+  }
+  else
+  {
+    buffer >> *(reinterpret_cast<uint32_t *>(output + member->offset_));
+  }
+}
+template <>
+void MessageDeserializer::deserialize_primitive<uint64_t>(
+  const rosidl_typesupport_introspection_c__MessageMember *member, uint8_t *output)
+{
+  if (member->is_array_)
+  {
+    if (!member->array_size_ || member->is_upper_bound_)
+    {
+      uint32_t size = 0;
+      buffer >> size;
+      auto seq_ptr = (reinterpret_cast<rosidl_runtime_c__uint64__Sequence *>(output + member->offset_));
+      if (seq_ptr->data)
+      {
+        rosidl_runtime_c__uint64__Sequence__fini(seq_ptr);
+      }
+      bool res = rosidl_runtime_c__uint64__Sequence__init(seq_ptr, size);
+      if (!res)
+      {
+        throw std::runtime_error("Failed to initialize sequence");
+      }
+      buffer.copy_arr(seq_ptr->data, seq_ptr->size);
+    }
+    else
+    {
+      buffer.copy_arr(reinterpret_cast<uint64_t *>(output + member->offset_), member->array_size_);
+    }
+  }
+  else
+  {
+    buffer >> *(reinterpret_cast<uint64_t *>(output + member->offset_));
+  }
+}
 
 template<>
 void MessageDeserializer::deserialize_boolean(
@@ -626,9 +980,7 @@ void MessageDeserializer::deserialize_wchar(
       }
 
       for (uint32_t i = 0; i < size; i++) {
-        uint32_t data = 0;
-        buffer >> data;
-        seq_ptr->data[i] = static_cast<uint16_t>(data);
+        buffer >> seq_ptr->data[i];
       }
     } else {
       auto arr = reinterpret_cast<uint16_t *>(output + member->offset_);
@@ -640,9 +992,7 @@ void MessageDeserializer::deserialize_wchar(
     }
   } else {
     auto dst = reinterpret_cast<uint16_t *>(output + member->offset_);
-    uint32_t data = 0;
-    buffer >> data;
-    *dst = static_cast<uint16_t>(data);
+    buffer >> *dst;
   }
 }
 
