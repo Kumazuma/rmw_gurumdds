@@ -18,6 +18,7 @@
 #include <cstring>
 #include <string>
 #include <stdexcept>
+#include <limits>
 
 #include "rosidl_runtime_c/string.h"
 #include "rosidl_runtime_c/string_functions.h"
@@ -35,6 +36,57 @@
 
 #define CDR_HEADER_SIZE 4
 #define CDR_HEADER_ENDIAN_IDX 1
+namespace cdr
+{
+class Buffer {
+public:
+  Buffer(uint8_t * buf, size_t size);
+
+  size_t get_offset() const;
+
+  void roundup(uint32_t align);
+
+protected:
+
+  void advance(size_t cnt);
+
+  uint8_t * buf_;
+  size_t offset_;
+  size_t size_;
+};
+
+template<bool SERIALIZE>
+class SerializationBuffer: public Buffer {
+public:
+  SerializationBuffer(uint8_t * buf, size_t size);
+
+  void operator<<(uint8_t src);
+
+  void operator<<(uint16_t src);
+
+  void operator<<(uint32_t src);
+
+  void operator<<(uint64_t src);
+
+  void operator<<(const std::string & src);
+
+  void operator<<(const std::u16string & src);
+
+  void operator<<(const rosidl_runtime_c__String & src);
+
+  void operator<<(const rosidl_runtime_c__U16String & src);
+
+  void copy_arr(const uint8_t * arr, size_t cnt);
+
+  void copy_arr(const uint16_t * arr, size_t cnt);
+
+  void copy_arr(const uint32_t * arr, size_t cnt);
+
+  void copy_arr(const uint64_t * arr, size_t cnt);
+};
+}
+
+#include "cdr_serialization_buffer.inl"
 
 class CDRBuffer
 {
@@ -69,197 +121,6 @@ protected:
   size_t size;
 
   CDRBuffer() {}
-};
-
-class CDRSerializationBuffer : public CDRBuffer
-{
-public:
-  CDRSerializationBuffer(uint8_t * a_buf, size_t a_size)
-  {
-    if (a_buf != nullptr) {
-      if (a_size < CDR_HEADER_SIZE) {
-        throw std::runtime_error("Insufficient buffer size");
-      }
-      memset(a_buf, 0, CDR_HEADER_SIZE);
-      a_buf[CDR_HEADER_ENDIAN_IDX] = system_endian;
-      buf = a_buf + CDR_HEADER_SIZE;
-      size = a_size - CDR_HEADER_SIZE;
-    } else {
-      buf = nullptr;
-      size = 0;
-    }
-    offset = 0;
-  }
-
-  void operator<<(uint8_t src)
-  {
-    align(1);
-    if (buf != nullptr) {
-      if (offset + 1 > size) {
-        throw std::runtime_error("Out of buffer");
-      }
-      *(reinterpret_cast<uint8_t *>(buf + offset)) = src;
-    }
-    advance(1);
-  }
-
-  void operator<<(uint16_t src)
-  {
-    align(2);
-    if (buf != nullptr) {
-      if (offset + 2 > size) {
-        throw std::runtime_error("Out of buffer");
-      }
-      *(reinterpret_cast<uint16_t *>(buf + offset)) = src;
-    }
-    advance(2);
-  }
-
-  void operator<<(uint32_t src)
-  {
-    align(4);
-    if (buf != nullptr) {
-      if (offset + 4 > size) {
-        throw std::runtime_error("Out of buffer");
-      }
-      *(reinterpret_cast<uint32_t *>(buf + offset)) = src;
-    }
-    advance(4);
-  }
-
-  void operator<<(uint64_t src)
-  {
-    align(8);
-    if (buf != nullptr) {
-      if (offset + 8 > size) {
-        throw std::runtime_error("Out of buffer");
-      }
-      *(reinterpret_cast<uint64_t *>(buf + offset)) = src;
-    }
-    advance(8);
-  }
-
-  void operator<<(const std::string & src)
-  {
-    *this << static_cast<uint32_t>(src.size() + 1);
-    align(1);  // align of char
-    if (buf != nullptr) {
-      if (offset + src.size() + 1 > size) {
-        throw std::runtime_error("Out of buffer");
-      }
-      memcpy(buf + offset, src.c_str(), src.size() + 1);
-    }
-    advance(src.size() + 1);
-  }
-
-  void operator<<(const std::u16string & src)
-  {
-    *this << static_cast<uint32_t>(src.size());
-    align(2);  // align of wchar
-    if (buf != nullptr) {
-      if (offset + (src.size() * 2) > size) {
-        throw std::runtime_error("Out of buffer");
-      }
-      auto dst = reinterpret_cast<uint16_t *>(buf + offset);
-      for (uint32_t i = 0; i < src.size(); i++) {
-        *(dst + i) = static_cast<uint16_t>(src[i]);
-      }
-    }
-    advance(src.size() * 2);
-  }
-
-  void operator<<(const rosidl_runtime_c__String & src)
-  {
-    *this << static_cast<uint32_t>(src.size + 1);
-    align(1);  // align of char
-    if (buf != nullptr) {
-      if (offset + src.size + 1 > size) {
-        throw std::runtime_error("Out of buffer");
-      }
-      memcpy(buf + offset, src.data, src.size + 1);
-    }
-    advance(src.size + 1);
-  }
-
-  void operator<<(const rosidl_runtime_c__U16String & src)
-  {
-    *this << static_cast<uint32_t>(src.size);
-    align(2);  // align of wchar
-    if (buf != nullptr) {
-      if (offset + src.size * 2 > size) {
-        throw std::runtime_error("Out of buffer");
-      }
-      auto dst = reinterpret_cast<uint16_t *>(buf + offset);
-      for (uint32_t i = 0; i < src.size; i++) {
-        *(dst + i) = static_cast<uint16_t>(src.data[i]);
-      }
-    }
-    advance(src.size * 2);
-  }
-
-  void copy_arr(const uint8_t * arr, size_t cnt)
-  {
-    if (cnt == 0) {
-      return;
-    }
-
-    align(1);
-    if (buf != nullptr) {
-      if (offset + cnt > size) {
-        throw std::runtime_error("Out of buffer");
-      }
-      memcpy(buf + offset, arr, cnt);
-    }
-    advance(cnt);
-  }
-
-  void copy_arr(const uint16_t * arr, size_t cnt)
-  {
-    if (cnt == 0) {
-      return;
-    }
-
-    align(2);
-    if (buf != nullptr) {
-      if (offset + cnt * 2 > size) {
-        throw std::runtime_error("Out of buffer");
-      }
-      memcpy(buf + offset, arr, cnt * 2);
-    }
-    advance(cnt * 2);
-  }
-
-  void copy_arr(const uint32_t * arr, size_t cnt)
-  {
-    if (cnt == 0) {
-      return;
-    }
-
-    align(4);
-    if (buf != nullptr) {
-      if (offset + cnt * 4 > size) {
-        throw std::runtime_error("Out of buffer");
-      }
-      memcpy(buf + offset, arr, cnt * 4);
-    }
-    advance(cnt * 4);
-  }
-
-  void copy_arr(const uint64_t * arr, size_t cnt)
-  {
-    if (cnt == 0) {
-      return;
-    }
-
-    align(8);
-    if (buf != nullptr) {
-      if (offset + cnt * 8 > size) {
-        throw std::runtime_error("Out of buffer");
-      }
-      memcpy(buf + offset, arr, cnt * 8);
-    }
-    advance(cnt * 8);
-  }
 };
 
 // ================================================================================================

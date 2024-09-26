@@ -301,8 +301,8 @@ _serialize_service_basic(
   uint32_t sn_low = static_cast<uint32_t>(sequence_number & 0x00000000FFFFFFFFLL);
 
   try {
-    auto buffer = CDRSerializationBuffer(dds_service, size);
-    auto serializer = MessageSerializer(buffer);
+    auto buffer = cdr::SerializationBuffer<true>(dds_service, size);
+    auto serializer = MessageSerializer<true, MessageMembersT>(buffer);
     buffer << *(reinterpret_cast<const uint64_t *>(client_guid));
     buffer << *(reinterpret_cast<const uint64_t *>(client_guid + 8));
     buffer << *(reinterpret_cast<uint32_t *>(&sn_high));
@@ -498,8 +498,8 @@ _serialize_service_enhanced(
   }
 
   try {
-    auto buffer = CDRSerializationBuffer(dds_service, size);
-    auto serializer = MessageSerializer(buffer);
+    auto buffer = cdr::SerializationBuffer<true>(dds_service, size);
+    auto serializer = MessageSerializer<true, MessageMembersT>(buffer);
     serializer.serialize(members, ros_service, true);
   } catch (std::runtime_error & e) {
     RMW_SET_ERROR_MSG_WITH_FORMAT_STRING("Failed to serialize ros message: %s", e.what());
