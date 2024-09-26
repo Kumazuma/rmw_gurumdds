@@ -6,6 +6,7 @@ inline void MessageSerializer<SERIALIZE, MessageMembersT>::serialize(const Messa
 {
   for (uint32_t i = 0; i < members->member_count_; i++) {
     auto member = members->members_ + i;
+    assert(member->type_id_ != rosidl_typesupport_introspection_cpp::ROS_TYPE_LONG_DOUBLE);
     switch (member->type_id_) {
       case rosidl_typesupport_introspection_cpp::ROS_TYPE_BOOLEAN:
         serialize_boolean(member, input);
@@ -231,14 +232,11 @@ inline void MessageSerializer<SERIALIZE, MessageMembersT>::serialize_struct_arr(
   const uint8_t * input)
 {
   if (member->is_array_) {
-    const void* tmp = input + member->offset_;
     const void* ptr = input + member->offset_;
     const uint32_t size = static_cast<uint32_t>(member->size_function(input + member->offset_));
     if (!member->array_size_ || member->is_upper_bound_) {
       // Sequence
       buffer << size;
-    } else if constexpr (std::is_same_v<MessageMemberT, rosidl_typesupport_introspection_c__MessageMember>){
-      ptr = &tmp;
     }
 
     for (uint32_t i = 0; i < size; i++) {

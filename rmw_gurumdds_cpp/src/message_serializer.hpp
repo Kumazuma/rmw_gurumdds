@@ -22,9 +22,11 @@ template<bool SERIALIZE, typename MessageMembersT>
 class MessageSerializer
 {
 public:
-  using MessageMemberT = typename std::remove_pointer_t<typename std::remove_all_extents<decltype(((MessageMembersT*)(nullptr))->members_)>::type>;
+  using MessageMemberT = typename std::remove_cv_t<std::remove_pointer_t<typename std::remove_all_extents<decltype(((MessageMembersT*)(nullptr))->members_)>::type>>;
   explicit MessageSerializer(cdr::SerializationBuffer<SERIALIZE> & a_buffer)
-    : buffer(a_buffer) {}
+    : buffer(a_buffer) {
+    static_assert(std::is_same_v<MessageMemberT, rosidl_typesupport_introspection_c__MessageMember> || std::is_same_v<MessageMemberT, rosidl_typesupport_introspection_cpp::MessageMember>);
+  }
 
   void serialize(const MessageMembersT * members, const uint8_t * input, bool roundup_);
 

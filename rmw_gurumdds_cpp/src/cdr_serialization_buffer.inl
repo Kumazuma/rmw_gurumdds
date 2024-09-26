@@ -66,7 +66,7 @@ inline void SerializationBuffer<SERIALIZE>::operator<<(uint64_t src) {
     if (offset_ + sizeof(uint64_t) > size_) {
       throw std::runtime_error("Out of buffer");
     }
-    *(reinterpret_cast<uint32_t *>(buf_ + offset_)) = src;
+    *(reinterpret_cast<uint64_t *>(buf_ + offset_)) = src;
   }
 
   advance(sizeof(uint64_t));
