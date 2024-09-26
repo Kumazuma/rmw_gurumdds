@@ -32,6 +32,7 @@
 #include "cdr_buffer.hpp"
 
 #include "message_serializer.hpp"
+#include "message_deserializer.hpp"
 
 class MessageDeserializer
 {

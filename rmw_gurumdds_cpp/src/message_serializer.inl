@@ -1,6 +1,14 @@
 #ifndef MESSAGE_SERIALIZER_INL
 #define MESSAGE_SERIALIZER_INL
 
+
+
+template<bool SERIALIZE, typename MessageMembersT>
+inline MessageSerializer<SERIALIZE, MessageMembersT>::MessageSerializer(cdr::SerializationBuffer<SERIALIZE> & buffer)
+: buffer(buffer) {
+  static_assert(std::is_same_v<MessageMemberT, rosidl_typesupport_introspection_c__MessageMember> || std::is_same_v<MessageMemberT, rosidl_typesupport_introspection_cpp::MessageMember>);
+}
+
 template<bool SERIALIZE, typename MessageMembersT>
 inline void MessageSerializer<SERIALIZE, MessageMembersT>::serialize(const MessageMembersT * members, const uint8_t * input, bool roundup_)
 {

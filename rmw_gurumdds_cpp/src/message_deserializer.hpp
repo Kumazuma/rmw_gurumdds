@@ -1,5 +1,5 @@
-#ifndef MESSAGE_SERIALIZER_HPP
-#define MESSAGE_SERIALIZER_HPP
+#ifndef MESSAGE_DESERIALIZER_HPP
+#define MESSAGE_DESERIALIZER_HPP
 
 
 #include "rosidl_runtime_cpp/bounded_vector.hpp"
@@ -18,44 +18,43 @@
 
 #include "cdr_buffer.hpp"
 
-template<bool SERIALIZE, typename MessageMembersT>
-class MessageSerializer {
+template<typename MessageMembersT>
+class MessageDeserializer {
 public:
   using MessageMemberT = typename std::remove_cv_t<std::remove_pointer_t<typename std::remove_all_extents<decltype(((MessageMembersT*)(nullptr))->members_)>::type>>;
-  explicit MessageSerializer(cdr::SerializationBuffer<SERIALIZE> & buffer);
 
-  void serialize(const MessageMembersT * members, const uint8_t * input, bool roundup_);
+  explicit MessageDeserializer(cdr::DeserializationBuffer & buffer);
 
+  void deserialize(const MessageMembersT * members, uint8_t * output);
 private:
-  void serialize_boolean(
+  void read_boolean(
     const MessageMemberT * member,
-    const uint8_t * input);
+    uint8_t * output);
 
-  void serialize_wchar(
+  void read_wchar(
     const MessageMemberT * member,
-    const uint8_t * input);
+    uint8_t * output);
 
-  void serialize_string(
+  void read_string(
     const MessageMemberT * member,
-    const uint8_t * input);
+    uint8_t * output);
 
-  void serialize_wstring(
+  void read_wstring(
     const MessageMemberT * member,
-    const uint8_t * input);
-
-
-  void serialize_struct_arr(
-    const MessageMemberT * member,
-    const uint8_t * input);
+    uint8_t * output);
 
   template<typename PrimitiveT>
-  void serialize_primitive(
+  void read_primitive(
     const MessageMemberT * member,
-    const uint8_t * input);
-private:
-  cdr::SerializationBuffer<SERIALIZE> & buffer;
+    uint8_t * output);
+
+  void read_struct_arr(
+    const MessageMemberT * member,
+    uint8_t * output);
+
+  cdr::DeserializationBuffer & buffer_;
 };
 
-#include "message_serializer.inl"
+#include "message_deserializer.inl"
 
-#endif  // MESSAGE_SERIALIZER_HPP
+#endif  // MESSAGE_DESERIALIZER_HPP
