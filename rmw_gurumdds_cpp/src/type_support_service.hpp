@@ -301,8 +301,8 @@ _serialize_service_basic(
   uint32_t sn_low = static_cast<uint32_t>(sequence_number & 0x00000000FFFFFFFFLL);
 
   try {
-    auto buffer = cdr::SerializationBuffer<true>(dds_service, size);
-    auto serializer = MessageSerializer<true, MessageMembersT>(buffer);
+    auto buffer = rmw_gurumdds::CdrSerializationBuffer<true>(dds_service, size);
+    auto serializer = rmw_gurumdds::MessageSerializer<true, MessageMembersT>(buffer);
     buffer << *(reinterpret_cast<const uint64_t *>(client_guid));
     buffer << *(reinterpret_cast<const uint64_t *>(client_guid + 8));
     buffer << *(reinterpret_cast<uint32_t *>(&sn_high));
@@ -498,8 +498,8 @@ _serialize_service_enhanced(
   }
 
   try {
-    auto buffer = cdr::SerializationBuffer<true>(dds_service, size);
-    auto serializer = MessageSerializer<true, MessageMembersT>(buffer);
+    auto buffer = rmw_gurumdds::CdrSerializationBuffer<true>(dds_service, size);
+    auto serializer = rmw_gurumdds::MessageSerializer<true, MessageMembersT>(buffer);
     serializer.serialize(members, ros_service, true);
   } catch (std::runtime_error & e) {
     RMW_SET_ERROR_MSG_WITH_FORMAT_STRING("Failed to serialize ros message: %s", e.what());
@@ -657,8 +657,8 @@ _deserialize_service_basic(
   }
 
   try {
-    auto buffer = cdr::DeserializationBuffer(dds_service, size);
-    auto deserializer = MessageDeserializer<MessageMembersT>(buffer);
+    auto buffer = rmw_gurumdds::CdrDeserializationBuffer(dds_service, size);
+    auto deserializer = rmw_gurumdds::MessageDeserializer<MessageMembersT>(buffer);
     buffer >> *(reinterpret_cast<uint64_t *>(client_guid));
     buffer >> *(reinterpret_cast<uint64_t *>(client_guid + 8));
     buffer >> *(reinterpret_cast<uint32_t *>(sn_high));
@@ -867,8 +867,8 @@ _deserialize_service_enhanced(
   }
 
   try {
-    auto buffer = cdr::DeserializationBuffer(dds_service, size);
-    auto deserializer = MessageDeserializer<MessageMembersT>(buffer);
+    auto buffer = rmw_gurumdds::CdrDeserializationBuffer(dds_service, size);
+    auto deserializer = rmw_gurumdds::MessageDeserializer<MessageMembersT>(buffer);
     deserializer.deserialize(members, ros_service);
   } catch (std::runtime_error & e) {
     RMW_SET_ERROR_MSG_WITH_FORMAT_STRING("Failed to deserialize dds message: %s", e.what());

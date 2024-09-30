@@ -36,11 +36,11 @@
 
 #define CDR_HEADER_SIZE 4
 #define CDR_HEADER_ENDIAN_IDX 1
-namespace cdr
+namespace rmw_gurumdds
 {
-class Buffer {
+class CdrBuffer {
 public:
-  Buffer(uint8_t * buf, size_t size);
+  CdrBuffer(uint8_t * buf, size_t size);
 
   size_t get_offset() const;
 
@@ -56,9 +56,9 @@ protected:
 };
 
 template<bool SERIALIZE>
-class SerializationBuffer: public Buffer {
+class CdrSerializationBuffer: public CdrBuffer {
 public:
-  SerializationBuffer(uint8_t * buf, size_t size);
+  CdrSerializationBuffer(uint8_t * buf, size_t size);
 
   void operator<<(uint8_t src);
 
@@ -85,9 +85,9 @@ public:
   void copy_arr(const uint64_t * arr, size_t cnt);
 };
 
-class DeserializationBuffer: public Buffer {
+class CdrDeserializationBuffer: public CdrBuffer {
 public:
-  DeserializationBuffer(uint8_t * buf, size_t size);
+  CdrDeserializationBuffer(uint8_t * buf, size_t size);
 
   void operator>>(uint8_t & dst);
 

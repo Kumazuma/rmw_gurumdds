@@ -1,11 +1,11 @@
 #ifndef CDR_SERIALIZATION_BUFFER_INL
 #define CDR_SERIALIZATION_BUFFER_INL
 
-namespace cdr
+namespace rmw_gurumdds
 {
 template<>
-inline SerializationBuffer<true>::SerializationBuffer(uint8_t * buf, size_t size)
-  : Buffer{buf, size} {
+inline CdrSerializationBuffer<true>::CdrSerializationBuffer(uint8_t * buf, size_t size)
+  : CdrBuffer{buf, size} {
   if (nullptr == buf) {
     throw std::runtime_error("Buf is null");
   }
@@ -20,12 +20,12 @@ inline SerializationBuffer<true>::SerializationBuffer(uint8_t * buf, size_t size
 }
 
 template<>
-inline SerializationBuffer<false>::SerializationBuffer(uint8_t *, size_t)
-  : Buffer{nullptr, std::numeric_limits<size_t>::max()} {
+inline CdrSerializationBuffer<false>::CdrSerializationBuffer(uint8_t *, size_t)
+  : CdrBuffer{nullptr, std::numeric_limits<size_t>::max()} {
 }
 
 template<bool SERIALIZE>
-inline void SerializationBuffer<SERIALIZE>::operator<<(uint8_t src) {
+inline void CdrSerializationBuffer<SERIALIZE>::operator<<(uint8_t src) {
   roundup(sizeof(uint8_t));
   if constexpr (SERIALIZE) {
     if (offset_ + sizeof(uint8_t) > size_) {
@@ -38,7 +38,7 @@ inline void SerializationBuffer<SERIALIZE>::operator<<(uint8_t src) {
 }
 
 template<bool SERIALIZE>
-inline void SerializationBuffer<SERIALIZE>::operator<<(uint16_t src) {
+inline void CdrSerializationBuffer<SERIALIZE>::operator<<(uint16_t src) {
   roundup(sizeof(uint16_t));
   if constexpr (SERIALIZE) {
     if (offset_ + sizeof(uint16_t) > size_) {
@@ -51,7 +51,7 @@ inline void SerializationBuffer<SERIALIZE>::operator<<(uint16_t src) {
 }
 
 template<bool SERIALIZE>
-inline void SerializationBuffer<SERIALIZE>::operator<<(uint32_t src) {
+inline void CdrSerializationBuffer<SERIALIZE>::operator<<(uint32_t src) {
   roundup(sizeof(uint32_t));
   if constexpr (SERIALIZE) {
     if (offset_ + sizeof(uint32_t) > size_) {
@@ -64,7 +64,7 @@ inline void SerializationBuffer<SERIALIZE>::operator<<(uint32_t src) {
 }
 
 template<bool SERIALIZE>
-inline void SerializationBuffer<SERIALIZE>::operator<<(uint64_t src) {
+inline void CdrSerializationBuffer<SERIALIZE>::operator<<(uint64_t src) {
   roundup(sizeof(uint64_t));
   if constexpr (SERIALIZE) {
     if (offset_ + sizeof(uint64_t) > size_) {
@@ -77,7 +77,7 @@ inline void SerializationBuffer<SERIALIZE>::operator<<(uint64_t src) {
 }
 
 template<bool SERIALIZE>
-inline void SerializationBuffer<SERIALIZE>::operator<<(const std::string & src)
+inline void CdrSerializationBuffer<SERIALIZE>::operator<<(const std::string & src)
 {
   *this << static_cast<uint32_t>(src.size() + 1);
   roundup(sizeof(char));  // align of char
@@ -91,7 +91,7 @@ inline void SerializationBuffer<SERIALIZE>::operator<<(const std::string & src)
 }
 
 template<bool SERIALIZE>
-inline void SerializationBuffer<SERIALIZE>::operator<<(const std::u16string & src)
+inline void CdrSerializationBuffer<SERIALIZE>::operator<<(const std::u16string & src)
 {
   *this << static_cast<uint32_t>(src.size());
   roundup(sizeof(char16_t));  // align of char16_t
@@ -106,7 +106,7 @@ inline void SerializationBuffer<SERIALIZE>::operator<<(const std::u16string & sr
 }
 
 template<bool SERIALIZE>
-inline void SerializationBuffer<SERIALIZE>::operator<<(const rosidl_runtime_c__String & src)
+inline void CdrSerializationBuffer<SERIALIZE>::operator<<(const rosidl_runtime_c__String & src)
 {
   *this << static_cast<uint32_t>(src.size + 1);
   roundup(sizeof(char));  // align of char
@@ -120,7 +120,7 @@ inline void SerializationBuffer<SERIALIZE>::operator<<(const rosidl_runtime_c__S
 }
 
 template<bool SERIALIZE>
-inline void SerializationBuffer<SERIALIZE>::operator<<(const rosidl_runtime_c__U16String & src)
+inline void CdrSerializationBuffer<SERIALIZE>::operator<<(const rosidl_runtime_c__U16String & src)
 {
   *this << static_cast<uint32_t>(src.size);
   roundup(sizeof(char16_t));  // align of char16_t
@@ -135,7 +135,7 @@ inline void SerializationBuffer<SERIALIZE>::operator<<(const rosidl_runtime_c__U
 }
 
 template<bool SERIALIZE>
-inline void SerializationBuffer<SERIALIZE>::copy_arr(const uint8_t * arr, size_t cnt)
+inline void CdrSerializationBuffer<SERIALIZE>::copy_arr(const uint8_t * arr, size_t cnt)
 {
   if (cnt == 0) {
     return;
@@ -152,7 +152,7 @@ inline void SerializationBuffer<SERIALIZE>::copy_arr(const uint8_t * arr, size_t
 }
 
 template<bool SERIALIZE>
-inline void SerializationBuffer<SERIALIZE>::copy_arr(const uint16_t * arr, size_t cnt)
+inline void CdrSerializationBuffer<SERIALIZE>::copy_arr(const uint16_t * arr, size_t cnt)
 {
   if (cnt == 0) {
     return;
@@ -169,7 +169,7 @@ inline void SerializationBuffer<SERIALIZE>::copy_arr(const uint16_t * arr, size_
 }
 
 template<bool SERIALIZE>
-inline void SerializationBuffer<SERIALIZE>::copy_arr(const uint32_t * arr, size_t cnt)
+inline void CdrSerializationBuffer<SERIALIZE>::copy_arr(const uint32_t * arr, size_t cnt)
 {
   if (cnt == 0) {
     return;
@@ -186,7 +186,7 @@ inline void SerializationBuffer<SERIALIZE>::copy_arr(const uint32_t * arr, size_
 }
 
 template<bool SERIALIZE>
-inline void SerializationBuffer<SERIALIZE>::copy_arr(const uint64_t * arr, size_t cnt)
+inline void CdrSerializationBuffer<SERIALIZE>::copy_arr(const uint64_t * arr, size_t cnt)
 {
   if (cnt == 0) {
     return;

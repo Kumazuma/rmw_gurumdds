@@ -1,8 +1,9 @@
 #ifndef MESSAGE_SERIALIZER_INL
 #define MESSAGE_SERIALIZER_INL
-
+namespace rmw_gurumdds
+{
 template<bool SERIALIZE, typename MessageMembersT>
-inline MessageSerializer<SERIALIZE, MessageMembersT>::MessageSerializer(cdr::SerializationBuffer<SERIALIZE> & buffer)
+inline MessageSerializer<SERIALIZE, MessageMembersT>::MessageSerializer(CdrSerializationBuffer<SERIALIZE> & buffer)
 : buffer(buffer) {
     static_assert(LANGUAGE_KIND != LanguageKind::UNKNOWN);
 }
@@ -289,5 +290,5 @@ inline void MessageSerializer<SERIALIZE, MessageMembersT>::serialize_primitive(
     buffer << *reinterpret_cast<const T *>(input + member->offset_);
   }
 }
-
+}
 #endif  // MESSAGE_SERIALIZER_INL

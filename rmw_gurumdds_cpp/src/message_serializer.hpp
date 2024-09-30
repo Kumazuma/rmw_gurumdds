@@ -18,6 +18,8 @@
 
 #include "cdr_buffer.hpp"
 
+namespace rmw_gurumdds
+{
 template<bool SERIALIZE, typename MessageMembersT>
 class MessageSerializer {
 public:
@@ -25,7 +27,7 @@ public:
   static constexpr LanguageKind LANGUAGE_KIND = (std::is_same_v<MessageMemberT, rosidl_typesupport_introspection_c__MessageMember> ?
                                                    LanguageKind::C : (std::is_same_v<MessageMemberT, rosidl_typesupport_introspection_cpp::MessageMember>
                                                       ? LanguageKind::CXX : LanguageKind::UNKNOWN));
-  explicit MessageSerializer(cdr::SerializationBuffer<SERIALIZE> & buffer);
+  explicit MessageSerializer(CdrSerializationBuffer<SERIALIZE> & buffer);
 
   void serialize(const MessageMembersT * members, const uint8_t * input, bool roundup_);
 
@@ -56,8 +58,9 @@ private:
     const MessageMemberT * member,
     const uint8_t * input);
 private:
-  cdr::SerializationBuffer<SERIALIZE> & buffer;
+  CdrSerializationBuffer<SERIALIZE> & buffer;
 };
+}
 
 #include "message_serializer.inl"
 

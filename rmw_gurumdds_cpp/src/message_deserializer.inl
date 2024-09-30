@@ -1,8 +1,10 @@
 #ifndef MESSAGE_DESERIALIZER_INL
 #define MESSAGE_DESERIALIZER_INL
 
+namespace rmw_gurumdds
+{
 template<typename MessageMembersT>
-inline MessageDeserializer<MessageMembersT>::MessageDeserializer(cdr::DeserializationBuffer & buffer)
+inline MessageDeserializer<MessageMembersT>::MessageDeserializer(CdrDeserializationBuffer & buffer)
   : buffer_(buffer) {
   static_assert(LANGUAGE_KIND != LanguageKind::UNKNOWN);
 }
@@ -377,6 +379,7 @@ inline void MessageDeserializer<MessageMembersT>::read_struct_arr(const MessageM
         )
     );
   }
+}
 }
 
 #endif  // MESSAGE_DESERIALIZER_INL

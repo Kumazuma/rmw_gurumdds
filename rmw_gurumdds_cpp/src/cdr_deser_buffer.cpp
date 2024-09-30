@@ -1,6 +1,6 @@
 #include "cdr_buffer.hpp"
 
-namespace cdr
+namespace rmw_gurumdds
 {
 
 static uint16_t bswap16(uint16_t data)
@@ -28,8 +28,8 @@ static uint64_t bswap64(uint64_t data)
          (data << 56);
 }
 
-DeserializationBuffer::DeserializationBuffer(uint8_t * buf, size_t size)
-  : Buffer{buf, size} {
+CdrDeserializationBuffer::CdrDeserializationBuffer(uint8_t * buf, size_t size)
+  : CdrBuffer{buf, size} {
   if (size < CDR_HEADER_SIZE) {
     throw std::runtime_error("Insufficient buffer size");
   }
@@ -39,7 +39,7 @@ DeserializationBuffer::DeserializationBuffer(uint8_t * buf, size_t size)
   offset_ = 0;
 }
 
-void DeserializationBuffer::operator>>(uint8_t & dst) {
+void CdrDeserializationBuffer::operator>>(uint8_t & dst) {
   roundup(sizeof(uint8_t));
   if (offset_ + sizeof(uint8_t) > size_) {
     throw std::runtime_error("Out of buffer");
@@ -48,7 +48,7 @@ void DeserializationBuffer::operator>>(uint8_t & dst) {
   advance(sizeof(uint8_t));
 }
 
-void DeserializationBuffer::operator>>(uint16_t & dst) {
+void CdrDeserializationBuffer::operator>>(uint16_t & dst) {
   roundup(sizeof(uint16_t));
   if (offset_ + sizeof(uint16_t) > size_) {
     throw std::runtime_error("Out of buffer");
@@ -60,7 +60,7 @@ void DeserializationBuffer::operator>>(uint16_t & dst) {
   advance(sizeof(uint16_t));
 }
 
-void DeserializationBuffer::operator>>(uint32_t & dst) {
+void CdrDeserializationBuffer::operator>>(uint32_t & dst) {
   roundup(sizeof(uint32_t));
   if (offset_ + sizeof(uint32_t) > size_) {
     throw std::runtime_error("Out of buffer");
@@ -72,7 +72,7 @@ void DeserializationBuffer::operator>>(uint32_t & dst) {
   advance(sizeof(uint32_t));
 }
 
-void DeserializationBuffer::operator>>(uint64_t & dst) {
+void CdrDeserializationBuffer::operator>>(uint64_t & dst) {
   roundup(sizeof(uint64_t));
   if (offset_ + sizeof(uint64_t) > size_) {
     throw std::runtime_error("Out of buffer");
@@ -84,7 +84,7 @@ void DeserializationBuffer::operator>>(uint64_t & dst) {
   advance(sizeof(uint64_t));
 }
 
-void DeserializationBuffer::operator>>(std::string & dst) {
+void CdrDeserializationBuffer::operator>>(std::string & dst) {
     uint32_t str_size = 0;
     *this >> str_size;
     roundup(sizeof(char));  // align of char
@@ -105,7 +105,7 @@ void DeserializationBuffer::operator>>(std::string & dst) {
     advance(str_size);
 }
 
-void DeserializationBuffer::operator>>(std::u16string & dst) {
+void CdrDeserializationBuffer::operator>>(std::u16string & dst) {
   uint32_t str_size = 0;
   *this >> str_size;
   roundup(sizeof(char16_t));  // align of wchar
@@ -128,7 +128,7 @@ void DeserializationBuffer::operator>>(std::u16string & dst) {
   advance(str_size * sizeof(char16_t));
 }
 
-void DeserializationBuffer::operator>>(rosidl_runtime_c__String & dst) {
+void CdrDeserializationBuffer::operator>>(rosidl_runtime_c__String & dst) {
   uint32_t str_size = 0;
   *this >> str_size;
   roundup(sizeof(char));  // align of char
@@ -150,7 +150,7 @@ void DeserializationBuffer::operator>>(rosidl_runtime_c__String & dst) {
   advance(str_size);
 }
 
-void DeserializationBuffer::operator>>(rosidl_runtime_c__U16String & dst) {
+void CdrDeserializationBuffer::operator>>(rosidl_runtime_c__U16String & dst) {
   uint32_t str_size = 0;
   *this >> str_size;
   roundup(sizeof(char16_t));  // align of wchar
@@ -178,7 +178,7 @@ void DeserializationBuffer::operator>>(rosidl_runtime_c__U16String & dst) {
   advance(str_size * sizeof(char16_t));
 }
 
-void DeserializationBuffer::copy_arr(uint8_t * arr, size_t cnt) {
+void CdrDeserializationBuffer::copy_arr(uint8_t * arr, size_t cnt) {
   if (cnt == 0) {
     return;
   }
@@ -191,7 +191,7 @@ void DeserializationBuffer::copy_arr(uint8_t * arr, size_t cnt) {
   advance(cnt);
 }
 
-void DeserializationBuffer::copy_arr(uint16_t * arr, size_t cnt) {
+void CdrDeserializationBuffer::copy_arr(uint16_t * arr, size_t cnt) {
   if (cnt == 0) {
     return;
   }
@@ -212,7 +212,7 @@ void DeserializationBuffer::copy_arr(uint16_t * arr, size_t cnt) {
   advance(cnt * sizeof(uint16_t));
 }
 
-void DeserializationBuffer::copy_arr(uint32_t * arr, size_t cnt) {
+void CdrDeserializationBuffer::copy_arr(uint32_t * arr, size_t cnt) {
   if (cnt == 0) {
     return;
   }
@@ -233,7 +233,7 @@ void DeserializationBuffer::copy_arr(uint32_t * arr, size_t cnt) {
   advance(cnt * sizeof(uint32_t));
 }
 
-void DeserializationBuffer::copy_arr(uint64_t * arr, size_t cnt) {
+void CdrDeserializationBuffer::copy_arr(uint64_t * arr, size_t cnt) {
   if (cnt == 0) {
     return;
   }
