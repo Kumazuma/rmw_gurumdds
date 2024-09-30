@@ -21,7 +21,10 @@
 template<bool SERIALIZE, typename MessageMembersT>
 class MessageSerializer {
 public:
-  using MessageMemberT = typename std::remove_cv_t<std::remove_pointer_t<typename std::remove_all_extents<decltype(((MessageMembersT*)(nullptr))->members_)>::type>>;
+  using MessageMemberT = typename std::remove_cv_t<std::remove_pointer_t<typename std::remove_all_extents<decltype(std::declval<MessageMembersT>().members_)>::type>>;
+  static constexpr LanguageKind LANGUAGE_KIND = (std::is_same_v<MessageMemberT, rosidl_typesupport_introspection_c__MessageMember> ?
+                                                   LanguageKind::C : (std::is_same_v<MessageMemberT, rosidl_typesupport_introspection_cpp::MessageMember>
+                                                      ? LanguageKind::CXX : LanguageKind::UNKNOWN));
   explicit MessageSerializer(cdr::SerializationBuffer<SERIALIZE> & buffer);
 
   void serialize(const MessageMembersT * members, const uint8_t * input, bool roundup_);

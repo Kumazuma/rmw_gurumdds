@@ -1,20 +1,19 @@
 #ifndef MESSAGE_SERIALIZER_INL
 #define MESSAGE_SERIALIZER_INL
 
-
-
 template<bool SERIALIZE, typename MessageMembersT>
 inline MessageSerializer<SERIALIZE, MessageMembersT>::MessageSerializer(cdr::SerializationBuffer<SERIALIZE> & buffer)
 : buffer(buffer) {
-  static_assert(std::is_same_v<MessageMemberT, rosidl_typesupport_introspection_c__MessageMember> || std::is_same_v<MessageMemberT, rosidl_typesupport_introspection_cpp::MessageMember>);
+    static_assert(LANGUAGE_KIND != LanguageKind::UNKNOWN);
 }
 
 template<bool SERIALIZE, typename MessageMembersT>
-inline void MessageSerializer<SERIALIZE, MessageMembersT>::serialize(const MessageMembersT * members, const uint8_t * input, bool roundup_)
-{
+inline void MessageSerializer<SERIALIZE, MessageMembersT>::serialize(
+  const MessageMembersT * members,
+  const uint8_t * input,
+  bool roundup_) {
   for (uint32_t i = 0; i < members->member_count_; i++) {
     auto member = members->members_ + i;
-    assert(member->type_id_ != rosidl_typesupport_introspection_cpp::ROS_TYPE_LONG_DOUBLE);
     switch (member->type_id_) {
       case rosidl_typesupport_introspection_cpp::ROS_TYPE_BOOLEAN:
         serialize_boolean(member, input);
@@ -66,10 +65,9 @@ inline void MessageSerializer<SERIALIZE, MessageMembersT>::serialize(const Messa
 template<bool SERIALIZE, typename MessageMembersT>
 inline void MessageSerializer<SERIALIZE, MessageMembersT>::serialize_boolean(
   const MessageMemberT * member,
-  const uint8_t * input)
-{
+  const uint8_t * input) {
   if (member->is_array_) {
-    if constexpr (std::is_same_v<MessageMemberT, rosidl_typesupport_introspection_c__MessageMember>) {
+    if constexpr (LANGUAGE_KIND == LanguageKind::C) {
       if (!member->array_size_ || member->is_upper_bound_) {
         // Sequence
         auto seq =
@@ -88,7 +86,7 @@ inline void MessageSerializer<SERIALIZE, MessageMembersT>::serialize_boolean(
       }
     }
 
-    if constexpr (std::is_same_v<MessageMemberT, rosidl_typesupport_introspection_cpp::MessageMember>) {
+    if constexpr (LANGUAGE_KIND == LanguageKind::CXX) {
       if (!member->array_size_ || member->is_upper_bound_) {
         // Sequence
         auto vec =
@@ -118,7 +116,7 @@ inline void MessageSerializer<SERIALIZE, MessageMembersT>::serialize_wchar(
   const uint8_t * input)
 {
   if (member->is_array_) {
-    if constexpr (std::is_same_v<MessageMemberT, rosidl_typesupport_introspection_c__MessageMember>) {
+    if constexpr (LANGUAGE_KIND == LanguageKind::C) {
       if (!member->array_size_ || member->is_upper_bound_) {
         // Sequence
         auto seq =
@@ -131,7 +129,7 @@ inline void MessageSerializer<SERIALIZE, MessageMembersT>::serialize_wchar(
       }
     }
 
-    if constexpr (std::is_same_v<MessageMemberT, rosidl_typesupport_introspection_cpp::MessageMember>) {
+    if constexpr (LANGUAGE_KIND == LanguageKind::CXX) {
       const uint32_t size = static_cast<uint32_t>(member->size_function(input + member->offset_));
       if (!member->array_size_ || member->is_upper_bound_) {
         // Sequence
@@ -148,9 +146,10 @@ inline void MessageSerializer<SERIALIZE, MessageMembersT>::serialize_wchar(
 }
 
 template<bool SERIALIZE, typename MessageMembersT>
-inline void MessageSerializer<SERIALIZE, MessageMembersT>::serialize_string(const MessageMemberT * member, const uint8_t *input)
-{
-  if constexpr (std::is_same_v<MessageMemberT, rosidl_typesupport_introspection_c__MessageMember>) {
+inline void MessageSerializer<SERIALIZE, MessageMembersT>::serialize_string(
+  const MessageMemberT * member,
+  const uint8_t *input) {
+  if constexpr (LANGUAGE_KIND == LanguageKind::C) {
     if (member->is_array_) {
       if (!member->array_size_ || member->is_upper_bound_) {
         // Sequence
@@ -172,7 +171,7 @@ inline void MessageSerializer<SERIALIZE, MessageMembersT>::serialize_string(cons
     }
   }
 
-  if constexpr (std::is_same_v<MessageMemberT, rosidl_typesupport_introspection_cpp::MessageMember>) {
+  if constexpr (LANGUAGE_KIND == LanguageKind::CXX) {
     if (member->is_array_) {
       const uint32_t size = static_cast<uint32_t>(member->size_function(input + member->offset_));
       if (!member->array_size_ || member->is_upper_bound_) {
@@ -190,9 +189,10 @@ inline void MessageSerializer<SERIALIZE, MessageMembersT>::serialize_string(cons
 }
 
 template<bool SERIALIZE, typename MessageMembersT>
-inline void MessageSerializer<SERIALIZE, MessageMembersT>::serialize_wstring(const MessageMemberT * member, const uint8_t *input)
-{
-  if constexpr (std::is_same_v<MessageMemberT, rosidl_typesupport_introspection_c__MessageMember>) {
+inline void MessageSerializer<SERIALIZE, MessageMembersT>::serialize_wstring(
+  const MessageMemberT * member,
+  const uint8_t *input) {
+  if constexpr (LANGUAGE_KIND == LanguageKind::C) {
     if (member->is_array_) {
       if (!member->array_size_ || member->is_upper_bound_) {
         // Sequence
@@ -217,7 +217,7 @@ inline void MessageSerializer<SERIALIZE, MessageMembersT>::serialize_wstring(con
     return;
   }
 
-  if constexpr (std::is_same_v<MessageMemberT, rosidl_typesupport_introspection_cpp::MessageMember>) {
+  if constexpr (LANGUAGE_KIND == LanguageKind::CXX) {
     if (member->is_array_) {
       const uint32_t size = member->size_function(input + member->offset_);
       if (!member->array_size_ || member->is_upper_bound_) {
@@ -237,8 +237,7 @@ inline void MessageSerializer<SERIALIZE, MessageMembersT>::serialize_wstring(con
 template<bool SERIALIZE, typename MessageMembersT>
 inline void MessageSerializer<SERIALIZE, MessageMembersT>::serialize_struct_arr(
   const MessageMemberT * member,
-  const uint8_t * input)
-{
+  const uint8_t * input) {
   if (member->is_array_) {
     const void* ptr = input + member->offset_;
     const uint32_t size = static_cast<uint32_t>(member->size_function(input + member->offset_));
@@ -259,19 +258,15 @@ inline void MessageSerializer<SERIALIZE, MessageMembersT>::serialize_struct_arr(
 
 template<bool SERIALIZE, typename MessageMembersT>
 template<typename T>
-inline void MessageSerializer<SERIALIZE, MessageMembersT>::serialize_primitive(const MessageSerializer::MessageMemberT * member, const uint8_t * input)
+inline void MessageSerializer<SERIALIZE, MessageMembersT>::serialize_primitive(
+  const MessageSerializer::MessageMemberT * member,
+  const uint8_t * input)
 {
   if (member->is_array_) {
-    if constexpr (std::is_same_v<MessageMemberT, rosidl_typesupport_introspection_c__MessageMember>) {
-      struct Sequence {
-        T* data;
-        size_t size;
-        size_t capacity;
-      };
-
+    if constexpr (LANGUAGE_KIND == LanguageKind::C) {
       if (!member->array_size_ || member->is_upper_bound_) {
         // Sequence
-        auto seq = reinterpret_cast<const Sequence*>(input + member->offset_);
+        auto seq = reinterpret_cast<const rmw_gurumdds::rmw_seq_t<T>*>(input + member->offset_);
         buffer << static_cast<uint32_t>(seq->size);
         buffer.copy_arr(seq->data, seq->size);
       } else {
@@ -280,7 +275,7 @@ inline void MessageSerializer<SERIALIZE, MessageMembersT>::serialize_primitive(c
       }
     }
 
-    if constexpr (std::is_same_v<MessageMemberT, rosidl_typesupport_introspection_cpp::MessageMember>) {
+    if constexpr (LANGUAGE_KIND == LanguageKind::CXX) {
       const uint32_t size = static_cast<uint32_t>(member->size_function(input + member->offset_));
       if (!member->array_size_ || member->is_upper_bound_) {
         // Sequence

@@ -657,8 +657,8 @@ _deserialize_service_basic(
   }
 
   try {
-    auto buffer = CDRDeserializationBuffer(dds_service, size);
-    auto deserializer = MessageDeserializer(buffer);
+    auto buffer = cdr::DeserializationBuffer(dds_service, size);
+    auto deserializer = MessageDeserializer<MessageMembersT>(buffer);
     buffer >> *(reinterpret_cast<uint64_t *>(client_guid));
     buffer >> *(reinterpret_cast<uint64_t *>(client_guid + 8));
     buffer >> *(reinterpret_cast<uint32_t *>(sn_high));
@@ -867,8 +867,8 @@ _deserialize_service_enhanced(
   }
 
   try {
-    auto buffer = CDRDeserializationBuffer(dds_service, size);
-    auto deserializer = MessageDeserializer(buffer);
+    auto buffer = cdr::DeserializationBuffer(dds_service, size);
+    auto deserializer = MessageDeserializer<MessageMembersT>(buffer);
     deserializer.deserialize(members, ros_service);
   } catch (std::runtime_error & e) {
     RMW_SET_ERROR_MSG_WITH_FORMAT_STRING("Failed to deserialize dds message: %s", e.what());

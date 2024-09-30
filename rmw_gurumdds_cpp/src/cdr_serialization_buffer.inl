@@ -6,6 +6,10 @@ namespace cdr
 template<>
 inline SerializationBuffer<true>::SerializationBuffer(uint8_t * buf, size_t size)
   : Buffer{buf, size} {
+  if (nullptr == buf) {
+    throw std::runtime_error("Buf is null");
+  }
+
   if (size < CDR_HEADER_SIZE) {
     throw std::runtime_error("Insufficient buffer size");
   }
