@@ -69,7 +69,7 @@ __rmw_create_subscription(
   rmw_subscription_t * rmw_subscription = nullptr;
   GurumddsSubscriberInfo * subscriber_info = nullptr;
   dds_DataReader * topic_reader = nullptr;
-  dds_DataReaderQos datareader_qos;
+  dds_DataReaderQos datareader_qos{};
   dds_Topic * topic = nullptr;
   dds_TopicDescription * topic_desc = nullptr;
   dds_ReadCondition * read_condition = nullptr;
@@ -139,7 +139,16 @@ __rmw_create_subscription(
     }
   }
 
-  if (!get_datareader_qos(sub, qos_policies, &datareader_qos)) {
+  ret = dds_DomainParticipantFactory_get_datareader_qos_from_profile(topic_name, &datareader_qos);
+  if(ret != dds_RETCODE_OK) {
+    ret = dds_Subscriber_get_default_datareader_qos(sub, &datareader_qos);
+    if (ret != dds_RETCODE_OK) {
+      RMW_SET_ERROR_MSG("failed to get default datareader qos");
+      return nullptr;
+    }
+  }
+
+  if (!get_datareader_qos(qos_policies, &datareader_qos)) {
     // Error message already set
     return nullptr;
   }

@@ -69,7 +69,7 @@ __rmw_create_publisher(
   rmw_publisher_t * rmw_publisher = nullptr;
   GurumddsPublisherInfo * publisher_info = nullptr;
   dds_DataWriter * topic_writer = nullptr;
-  dds_DataWriterQos datawriter_qos;
+  dds_DataWriterQos datawriter_qos{};
   dds_Topic * topic = nullptr;
   dds_TopicDescription * topic_desc = nullptr;
   dds_TypeSupport * dds_typesupport = nullptr;
@@ -138,7 +138,16 @@ __rmw_create_publisher(
     }
   }
 
-  if (!get_datawriter_qos(pub, qos_policies, &datawriter_qos)) {
+  ret = dds_DomainParticipantFactory_get_datawriter_qos_from_profile(topic_name, &datawriter_qos);
+  if(ret != dds_RETCODE_OK) {
+    ret = dds_Publisher_get_default_datawriter_qos(pub, &datawriter_qos);
+    if (ret != dds_RETCODE_OK) {
+      RMW_SET_ERROR_MSG("failed to get default datawriter qos");
+      return nullptr;
+    }
+  }
+
+  if (!get_datawriter_qos(qos_policies, &datawriter_qos)) {
     // Error message already set
     return nullptr;
   }
