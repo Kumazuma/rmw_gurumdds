@@ -99,8 +99,8 @@ rmw_create_client(
   dds_Publisher * publisher = ctx->publisher;
   dds_Subscriber * subscriber = ctx->subscriber;
 
-  dds_DataReaderQos datareader_qos;
-  dds_DataWriterQos datawriter_qos;
+  dds_DataReaderQos datareader_qos{};
+  dds_DataWriterQos datawriter_qos{};
 
   dds_DataWriter * request_writer = nullptr;
   dds_DataReader * response_reader = nullptr;
@@ -123,6 +123,8 @@ rmw_create_client(
   std::string response_type_name;
   std::string request_metastring;
   std::string response_metastring;
+  std::string writer_profile_name;
+  std::string reader_profile_name;
 
   // Create topic and type name strings
   service_type_name =
@@ -140,6 +142,12 @@ rmw_create_client(
     ros_service_requester_prefix, service_name, "Request", qos_policies);
   response_topic_name = create_topic_name(
     ros_service_response_prefix, service_name, "Reply", qos_policies);
+
+  writer_profile_name = service_name;
+  writer_profile_name += "Request";
+
+  reader_profile_name = service_name;
+  reader_profile_name += "Reply";
 
   service_metastring =
     create_service_metastring(type_support->data, type_support->typesupport_identifier);
@@ -261,8 +269,23 @@ rmw_create_client(
     }
   }
 
+  ret = dds_Publisher_get_default_datawriter_qos(publisher, &datawriter_qos);
+  if (ret != dds_RETCODE_OK) {
+    RMW_SET_ERROR_MSG("failed to get default datawriter qos");
+    return nullptr;
+  }
+
+  ret = dds_DomainParticipantFactory_get_datawriter_qos_from_profile(writer_profile_name.c_str(), &datawriter_qos);
+  if(ret != dds_RETCODE_OK) {
+    ret = dds_Publisher_get_default_datawriter_qos(publisher, &datawriter_qos);
+    if (ret != dds_RETCODE_OK) {
+      RMW_SET_ERROR_MSG("failed to get default datawriter qos");
+      return nullptr;
+    }
+  }
+
   // Create datawriter for request
-  if (!get_datawriter_qos(publisher, qos_policies, &datawriter_qos)) {
+  if (!get_datawriter_qos(qos_policies, &datawriter_qos)) {
     // Error message already set
     goto fail;
   }
@@ -282,7 +305,16 @@ rmw_create_client(
     goto fail;
   }
 
-  if (!get_datareader_qos(subscriber, qos_policies, &datareader_qos)) {
+  ret = dds_DomainParticipantFactory_get_datareader_qos_from_profile(reader_profile_name.c_str(), &datareader_qos);
+  if(ret != dds_RETCODE_OK) {
+    ret = dds_Subscriber_get_default_datareader_qos(subscriber, &datareader_qos);
+    if (ret != dds_RETCODE_OK) {
+      RMW_SET_ERROR_MSG("failed to get default datareader qos");
+      return nullptr;
+    }
+  }
+
+  if (!get_datareader_qos(qos_policies, &datareader_qos)) {
     // error message already set
     goto fail;
   }

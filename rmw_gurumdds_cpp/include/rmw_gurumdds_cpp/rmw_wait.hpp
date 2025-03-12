@@ -50,7 +50,8 @@ __gather_event_conditions(
 {
   RMW_CHECK_ARGUMENT_FOR_NULL(events, RMW_RET_INVALID_ARGUMENT);
   std::unordered_map<dds_StatusCondition *, dds_StatusMask> status_map;
-
+  status_map.reserve(events->event_count * 2);
+  status_conditions.reserve(events->event_count * 2);
   for (size_t i = 0; i < events->event_count; i++) {
     auto now = static_cast<rmw_event_t *>(events->events[i]);
     RMW_CHECK_ARGUMENT_FOR_NULL(events, RMW_RET_INVALID_ARGUMENT);
@@ -316,13 +317,17 @@ __rmw_wait(
 
   rmw_ret_t rret = RMW_RET_OK;
 
-  const char * env_name = "RMW_GURUMDDS_WAIT_USE_POLLING";
-  char * env_value = nullptr;
-  bool use_polling = false;
+  static const char * const env_name = "RMW_GURUMDDS_WAIT_USE_POLLING";
+  static bool env_init_value = false;
+  static bool use_polling = false;
+  if(!env_init_value) {
+    char * env_value = nullptr;
+    env_value = getenv(env_name);
+    if (env_value != nullptr) {
+      use_polling = (strcmp(env_value, "1") == 0);
+    }
 
-  env_value = getenv(env_name);
-  if (env_value != nullptr) {
-    use_polling = (strcmp(env_value, "1") == 0);
+    env_init_value = true;
   }
 
   if (!use_polling) {  // Default: use dds_WaitSet_wait()
@@ -369,7 +374,7 @@ __rmw_wait(
 
     for (uint32_t i = 0; i < dds_ConditionSeq_length(conds); ++i) {
       dds_Condition * cond = dds_ConditionSeq_get(conds, i);
-      if (cond == NULL) {
+      if (cond == nullptr) {
         continue;
       }
 
@@ -385,7 +390,7 @@ __rmw_wait(
       }
 
       dds_Condition * cond = dds_ConditionSeq_get(conds, i);
-      if (cond == NULL) {
+      if (cond == nullptr) {
         continue;
       }
 
@@ -417,7 +422,8 @@ __rmw_wait(
       }
 
       uint32_t j = 0;
-      for (; j < dds_ConditionSeq_length(active_conditions); ++j) {
+      const uint32_t active_conditions_count = dds_ConditionSeq_length(active_conditions);
+      for (; j < active_conditions_count; ++j) {
         if (
           dds_ConditionSeq_get(active_conditions, j) ==
           reinterpret_cast<dds_Condition *>(read_condition))
@@ -426,8 +432,8 @@ __rmw_wait(
         }
       }
 
-      if (j >= dds_ConditionSeq_length(active_conditions)) {
-        subscriptions->subscribers[i] = 0;
+      if (j >= active_conditions_count) {
+        subscriptions->subscribers[i] = nullptr;
       }
 
       rmw_ret_t rmw_ret_code = __detach_condition(
@@ -448,7 +454,8 @@ __rmw_wait(
       }
 
       uint32_t j = 0;
-      for (; j < dds_ConditionSeq_length(active_conditions); ++j) {
+      const uint32_t active_conditions_count = dds_ConditionSeq_length(active_conditions);
+      for (; j < active_conditions_count; ++j) {
         if (dds_ConditionSeq_get(active_conditions, j) == condition) {
           dds_GuardCondition * guard = reinterpret_cast<dds_GuardCondition *>(condition);
           dds_ReturnCode_t ret = dds_GuardCondition_set_trigger_value(guard, false);
@@ -460,8 +467,8 @@ __rmw_wait(
         }
       }
 
-      if (j >= dds_ConditionSeq_length(active_conditions)) {
-        guard_conditions->guard_conditions[i] = 0;
+      if (j >= active_conditions_count) {
+        guard_conditions->guard_conditions[i] = nullptr;
       }
 
       rmw_ret_t rmw_ret_code = __detach_condition(dds_wait_set, condition);
@@ -486,7 +493,8 @@ __rmw_wait(
       }
 
       uint32_t j = 0;
-      for (; j < dds_ConditionSeq_length(active_conditions); ++j) {
+      const uint32_t active_conditions_count = dds_ConditionSeq_length(active_conditions);
+      for (; j < active_conditions_count; ++j) {
         if (
           dds_ConditionSeq_get(active_conditions, j) ==
           reinterpret_cast<dds_Condition *>(read_condition))
@@ -495,8 +503,8 @@ __rmw_wait(
         }
       }
 
-      if (j >= dds_ConditionSeq_length(active_conditions)) {
-        services->services[i] = 0;
+      if (j >= active_conditions_count) {
+        services->services[i] = nullptr;
       }
 
       rmw_ret_t rmw_ret_code = __detach_condition(
@@ -522,7 +530,8 @@ __rmw_wait(
       }
 
       uint32_t j = 0;
-      for (; j < dds_ConditionSeq_length(active_conditions); ++j) {
+      const uint32_t active_conditions_count = dds_ConditionSeq_length(active_conditions);
+      for (; j < active_conditions_count; ++j) {
         if (
           dds_ConditionSeq_get(active_conditions, j) ==
           reinterpret_cast<dds_Condition *>(read_condition))
@@ -531,8 +540,8 @@ __rmw_wait(
         }
       }
 
-      if (j >= dds_ConditionSeq_length(active_conditions)) {
-        clients->clients[i] = 0;
+      if (j >= active_conditions_count) {
+        clients->clients[i] = nullptr;
       }
 
       rmw_ret_t rmw_ret_code = __detach_condition(
