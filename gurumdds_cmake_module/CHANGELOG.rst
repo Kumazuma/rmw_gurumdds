@@ -1,6 +1,12 @@
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 Changelog for package gurumdds_cmake_module
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+3.6.4 (2025-03-13)
+------------------
+* Support dds qos profile
+* Reduce memcpy and memset
+* Contributors: kumazuma
+
 3.6.3 (2025-01-15)
 ------------------
 * Remove additional member fields for unused basic service support
