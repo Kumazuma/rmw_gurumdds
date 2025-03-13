@@ -17,6 +17,7 @@
 #include <limits>
 #include <thread>
 #include <chrono>
+#include <gurumdds/dcps.h>
 
 #include "rcutils/error_handling.h"
 #include "rcutils/types.h"
@@ -38,6 +39,7 @@
 #include "rmw_gurumdds_cpp/rmw_context_impl.hpp"
 #include "rmw_gurumdds_cpp/rmw_publisher.hpp"
 #include "rmw_gurumdds_cpp/types.hpp"
+#include "typesupport_ops.hpp"
 
 rmw_publisher_t *
 __rmw_create_publisher(
@@ -159,6 +161,7 @@ __rmw_create_publisher(
     return nullptr;
   }
 
+  set_rosidl_typesupport(topic_writer, type_support);
   ret = dds_DataWriterQos_finalize(&datawriter_qos);
   if (ret != dds_RETCODE_OK) {
     RMW_SET_ERROR_MSG("failed to finalize datawriter qos");
@@ -595,31 +598,6 @@ rmw_publish(
     return RMW_RET_ERROR;
   }
 
-  size_t size = 0;
-  void * dds_message = allocate_message(
-    rosidl_typesupport->data,
-    rosidl_typesupport->typesupport_identifier,
-    ros_message,
-    &size
-  );
-  if (dds_message == nullptr) {
-    // Error message already set
-    return RMW_RET_ERROR;
-  }
-
-  bool result = serialize_ros_to_cdr(
-    rosidl_typesupport->data,
-    rosidl_typesupport->typesupport_identifier,
-    ros_message,
-    dds_message,
-    size
-  );
-  if (!result) {
-    RMW_SET_ERROR_MSG("failed to serialize message");
-    free(dds_message);
-    return RMW_RET_ERROR;
-  }
-
   dds_SampleInfoEx sampleinfo_ex;
   memset(&sampleinfo_ex, 0, sizeof(dds_SampleInfoEx));
   ros_sn_to_dds_sn(++publisher_info->sequence_number, &sampleinfo_ex.seq);
@@ -627,8 +605,8 @@ rmw_publish(
     reinterpret_cast<int8_t *>(publisher_info->publisher_gid.data),
     reinterpret_cast<int8_t *>(&sampleinfo_ex.src_guid));
 
-  dds_ReturnCode_t ret = dds_DataWriter_raw_write_w_sampleinfoex(
-    topic_writer, dds_message, size, &sampleinfo_ex);
+  dds_ReturnCode_t ret = dds_DataWriter_write_w_sampleinfoex(
+    topic_writer, ros_message, &sampleinfo_ex);
 
   const char * errstr;
   if (ret == dds_RETCODE_OK) {
@@ -645,14 +623,10 @@ rmw_publish(
     std::stringstream errmsg;
     errmsg << "failed to publish data: " << errstr << ", " << ret;
     RMW_SET_ERROR_MSG(errmsg.str().c_str());
-    free(dds_message);
     return RMW_RET_ERROR;
   }
 
   RCUTILS_LOG_DEBUG_NAMED(RMW_GURUMDDS_ID, "Published data on topic %s", publisher->topic_name);
-
-  free(dds_message);
-
   return RMW_RET_OK;
 }
 

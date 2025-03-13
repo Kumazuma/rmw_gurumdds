@@ -144,12 +144,6 @@ rmw_init(const rmw_init_options_t * options, rmw_context_t * context)
 
   const char * mapping_env = "RMW_GURUMDDS_REQUEST_REPLY_MAPPING";
   char * mapping_env_value = nullptr;
-  bool service_mapping_basic = false;
-
-  mapping_env_value = getenv(mapping_env);
-  if (mapping_env_value != nullptr) {
-    service_mapping_basic = (strcmp(mapping_env_value, "basic") == 0);
-  }
 
   context->instance_id = options->instance_id;
   context->implementation_identifier = RMW_GURUMDDS_ID;
@@ -160,7 +154,6 @@ rmw_init(const rmw_init_options_t * options, rmw_context_t * context)
     goto fail;
   }
   context->impl->is_shutdown = false;
-  context->impl->service_mapping_basic = service_mapping_basic;
 
   ret = rmw_init_options_copy(options, &context->options);
   if (ret != RMW_RET_OK) {
