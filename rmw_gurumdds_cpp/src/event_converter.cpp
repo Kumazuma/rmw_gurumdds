@@ -29,10 +29,6 @@ static const dds_StatusKind g_mask_map[] {
 
 dds_StatusKind get_status_kind_from_rmw(const rmw_event_type_t event_t)
 {
-  if (!is_event_supported(event_t)) {
-    return 0;
-  }
-
   return g_mask_map[static_cast<int>(event_t)];
 }
 

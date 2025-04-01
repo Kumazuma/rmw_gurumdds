@@ -28,6 +28,8 @@
 #include <stdexcept>
 #include <string>
 #include <utility>
+#include <vector>
+#include <set>
 
 #include "rmw/ret_types.h"
 
@@ -49,12 +51,23 @@ void on_subscription_changed(
   const dds_SubscriptionBuiltinTopicData * data,
   dds_InstanceHandle_t handle);
 
-typedef struct _GurumddsWaitSetInfo
+typedef struct _GurumddsSubscriberInfo GurumddsSubscriberInfo;
+typedef struct _GurumddsServiceInfo GurumddsServiceInfo;
+typedef struct _GurumddsClientInfo GurumddsClientInfo;
+typedef struct _GurumddsEventInfo GurumddsEventInfo;
+struct GurumddsWaitSetInfo
 {
   dds_WaitSet * wait_set;
   dds_ConditionSeq * active_conditions;
   dds_ConditionSeq * attached_conditions;
-} GurumddsWaitSetInfo;
+  std::vector<GurumddsSubscriberInfo*> cached_subscription;
+  std::vector<dds_GuardCondition*> cached_guard_conditions;
+  std::vector<GurumddsServiceInfo*> cached_service_conditions;
+  std::vector<GurumddsClientInfo*> cached_client_conditions;
+  std::vector<GurumddsEventInfo*> cached_event_conditions;
+  std::vector<dds_StatusCondition*> cached_status_conditions;
+  std::mutex lock;
+};
 
 typedef struct _GurumddsEventInfo
 {

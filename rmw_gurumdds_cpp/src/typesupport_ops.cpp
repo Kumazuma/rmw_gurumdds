@@ -21,18 +21,6 @@ size_t gurumdds_ts_get_size(const rosidl_message_type_support_t* rosidl_typesupp
   return 0;
 }
 
-size_t gurumdds_ts_msg_clear(const rosidl_message_type_support_t* rosidl_typesupport, void* ros_message) {
-
-}
-
-size_t gurumdds_ts_request_msg_clear(const rosidl_message_type_support_t* rosidl_typesupport, void* ros_message) {
-
-}
-
-size_t gurumdds_ts_response_msg_clear(const rosidl_message_type_support_t* rosidl_typesupport, void* ros_message) {
-
-}
-
 size_t gurumdds_ts_get_size(void* context) {
   auto rosidl_typesupport = reinterpret_cast<rosidl_message_type_support_t *>(context);
 
