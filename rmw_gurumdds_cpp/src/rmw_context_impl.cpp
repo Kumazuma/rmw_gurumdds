@@ -99,8 +99,8 @@ rmw_context_impl_t::initialize_participant(
   const char * node_namespace,
   const bool localhost_only)
 {
-  dds_PublisherQos publisher_qos;
-  dds_SubscriberQos subscriber_qos;
+  dds_PublisherQos publisher_qos{};
+  dds_SubscriberQos subscriber_qos{};
   rmw_context_impl_t * const ctx = this;
 
   auto scope_exit_dp_finalize = rcpputils::make_scope_exit(
